@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlacksmithDev — Digital Craftsmanship & Developer Forge</title>
+  <meta name="description" content="BlacksmithDev is a high-performance web platform, developer workbench, and digital forge for building cutting-edge software applications.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome / Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Canvas Background for Ember Particles -->
+  <canvas id="ember-canvas"></canvas>
+
+  <!-- App Header & Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-anvil"></i>
+        </div>
+        <span class="brand-name">Blacksmith<span class="accent-text">Dev</span></span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#hero" class="nav-link active"><i class="fa-solid fa-fire"></i> Forge</a>
+        <a href="#workbench" class="nav-link"><i class="fa-solid fa-code"></i> Workbench</a>
+        <a href="#showcase" class="nav-link"><i class="fa-solid fa-layer-group"></i> Showcase</a>
+        <a href="#terminal-section" class="nav-link"><i class="fa-solid fa-terminal"></i> CLI</a>
+        <a href="#capabilities" class="nav-link"><i class="fa-solid fa-microchip"></i> Stack</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/Rokan0-0/BlacksmithDev" target="_blank" rel="noopener noreferrer" class="btn btn-outline" id="github-link-btn">
+          <i class="fa-brands fa-github"></i> GitHub Repo
+        </a>
+        <button class="btn btn-primary" id="launch-forge-btn">
+          <i class="fa-solid fa-hammer"></i> Forge Code
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="hero" class="hero-section">
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <div class="container hero-content">
+      <div class="badge">
+        <span class="badge-dot"></span> BlacksmithDev v1.0 • Ready for Production
+      </div>
+      <h1 class="hero-title">
+        Forging High-Performance <br>
+        <span class="gradient-text">Digital Masterpieces</span>
+      </h1>
+      <p class="hero-subtitle">
+        An engineering studio and developer suite designed to craft bulletproof web apps, AI agent pipelines, and high-throughput software architectures with precision.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#workbench" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Open Code Workbench
+        </a>
+        <a href="#terminal-section" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-terminal"></i> Launch Interactive CLI
+        </a>
+      </div>
+
+      <!-- Quick Metrics Bar -->
+      <div class="hero-metrics grid-3">
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="99.9">99.9%</span>
+            <span class="metric-label">Execution Efficiency</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="100">100%</span>
+            <span class="metric-label">Type-Safe & Clean Architecture</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-cubes"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="24">24+</span>
+            <span class="metric-label">Forged Modules & Templates</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workbench Section: Interactive Code Generator / Playground -->
+  <section id="workbench" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-screwdriver-wrench"></i> DIGITAL FORGE WORKBENCH</div>
+        <h2 class="section-title">Craft & Test Code Snippets</h2>
+        <p class="section-description">Select template algorithms, configure parameters, and instantly forge production-ready code with live metrics.</p>
+      </div>
+
+      <div class="workbench-grid">
+        <!-- Controls Sidebar -->
+        <div class="workbench-controls card-glass">
+          <h3><i class="fa-solid fa-sliders"></i> Forge Parameters</h3>
+          
+          <div class="form-group">
+            <label for="template-select">Target Module Template</label>
+            <select id="template-select" class="form-control">
+              <option value="async-pipeline">Async Task Queue & Retry Engine</option>
+              <option value="state-store">Reactive State Store with History</option>
+              <option value="rate-limiter">Token Bucket Rate Limiter</option>
+              <option value="ws-client">Resilient WebSocket Manager</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="language-select">Target Language</label>
+            <select id="language-select" class="form-control">
+              <option value="typescript">TypeScript (Strict)</option>
+              <option value="javascript">JavaScript (ES2024)</option>
+              <option value="python">Python 3.12 (Asyncio)</option>
+              <option value="rust">Rust (Tokio / Safe)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="concurrency-range">Concurrency Level: <span id="concurrency-val">8</span></label>
+            <input type="range" id="concurrency-range" min="1" max="32" value="8" class="form-range">
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" id="chk-telemetry" checked> Include Telemetry & Logging</label>
+            <label><input type="checkbox" id="chk-validation" checked> Enforce Schema Validation</label>
+            <label><input type="checkbox" id="chk-circuit" checked> Circuit Breaker Pattern</label>
+          </div>
+
+          <button id="btn-forge-code" class="btn btn-primary btn-full">
+            <i class="fa-solid fa-hammer"></i> Forge Code Snippet
+          </button>
+        </div>
+
+        <!-- Code Display & Live Execution -->
+        <div class="workbench-editor card-glass">
+          <div class="editor-header">
+            <div class="window-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <div class="editor-tab" id="editor-filename">forged_pipeline.ts</div>
+            <button class="btn-copy" id="btn-copy-code" title="Copy to clipboard">
+              <i class="fa-regular fa-copy"></i> Copy
+            </button>
+          </div>
+          <div class="editor-body">
+            <pre><code id="code-display">// Select parameters on the left and click "Forge Code Snippet" to generate code.</code></pre>
+          </div>
+          <div class="editor-footer">
+            <span id="forge-status"><i class="fa-solid fa-circle-check"></i> Status: Idle & Ready</span>
+            <span id="char-count">0 lines • UTF-8</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive CLI Simulator -->
+  <section id="terminal-section" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-terminal"></i> BLACKSMITH CLI V1.0</div>
+        <h2 class="section-title">Interactive Terminal Experience</h2>
+        <p class="section-description">Type commands below to inspect project status, run simulated benchmarks, or forge new assets.</p>
+      </div>
+
+      <div class="terminal-container card-glass">
+        <div class="terminal-header">
+          <div class="terminal-title"><i class="fa-solid fa-square-terminal"></i> blacksmith-cli -- bash - 80x24</div>
+          <div class="terminal-help-hint">Type <code>help</code> for available commands</div>
+        </div>
+        <div class="terminal-body" id="terminal-output">
+          <div class="term-line info">Welcome to <span class="term-highlight">BlacksmithDev CLI v1.0.4</span> [Environment: Windows/NodeJS]</div>
+          <div class="term-line info">Type '<span class="term-cmd">help</span>' to list available commands.</div>
+          <div class="term-line info">Repository: <span class="term-link">https://github.com/Rokan0-0/BlacksmithDev.git</span></div>
+          <div class="term-line">&nbsp;</div>
+        </div>
+        <div class="terminal-input-line">
+          <span class="prompt">rokan@blacksmith:~$</span>
+          <input type="text" id="terminal-input" placeholder="type command here... (e.g. status, forge, git-log, help)" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Showcase Section -->
+  <section id="showcase" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-boxes-stacked"></i> FORGED ARTIFACTS</div>
+        <h2 class="section-title">Engineered Modules & Architecture</h2>
+        <p class="section-description">Explore pre-built modules forged with ultra-low latency and scalable patterns.</p>
+      </div>
+
+      <div class="grid-3 showcase-grid">
+        <!-- Card 1 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">Core Tool</div>
+          <div class="card-icon"><i class="fa-solid fa-fire-burner"></i></div>
+          <h3 class="card-title">Ember-Engine AST</h3>
+          <p class="card-text">Ultra-fast abstract syntax tree transformer and code analyzer built for real-time developer tooling.</p>
+          <div class="card-tags">
+            <span class="tag">TypeScript</span>
+            <span class="tag">AST</span>
+            <span class="tag">Parser</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="ember">Inspect</button>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">AI Pipeline</div>
+          <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
+          <h3 class="card-title">Agentic Dispatcher</h3>
+          <p class="card-text">Multi-agent orchestrator with asynchronous message passing, reactive wakeups, and subagent state tracking.</p>
+          <div class="card-tags">
+            <span class="tag">AI Agents</span>
+            <span class="tag">Async</span>
+            <span class="tag">Queue</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="agent">Inspect</button>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">Security</div>
+          <div class="card-icon"><i class="fa-solid fa-key"></i></div>
+          <h3 class="card-title">Anvil Escrow & Auth</h3>
+          <p class="card-text">Cryptographic state verification and peer-to-peer trust engine with automated audit logs.</p>
+          <div class="card-tags">
+            <span class="tag">Security</span>
+            <span class="tag">Escrow</span>
+            <span class="tag">Crypto</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="anvil">Inspect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Capabilities Stack Section -->
+  <section id="capabilities" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-layer-group"></i> ENGINEERING TECH STACK</div>
+        <h2 class="section-title">Capabilities & Stack Matrix</h2>
+        <p class="section-description">Mastery across modern full-stack development, cloud architecture, and AI integrations.</p>
+      </div>
+
+      <div class="stack-grid">
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-laptop-code"></i> Frontend Excellence</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-ember"></i> Vanilla ES6+ & Modern Frameworks</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Custom CSS Architecture & Glassmorphism</li>
+            <li><i class="fa-solid fa-check text-ember"></i> High FPS Canvas & WebGL Visualizations</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Accessible (WCAG 2.1 AAA) & Responsive UI</li>
+          </ul>
+        </div>
+
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-server"></i> Backend & Distributed Systems</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-cyan"></i> Node.js, Python FastAPI & Rust Tokio</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> GraphQL & RESTful Microservices</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> High-Throughput Event Streams & WebSockets</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> PostgreSQL, Redis & Vector DB Integration</li>
+          </ul>
+        </div>
+
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-robot"></i> AI & Agentic Workflows</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-ember"></i> LLM Tooling & Subagent Orchestration</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Autonomous Task Scheduling & Execution</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Context Augmentation & RAG Systems</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Prompt Engineering & Dynamic Workflows</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <a href="#" class="brand-logo">
+          <i class="fa-solid fa-anvil logo-icon"></i>
+          <span>Blacksmith<span class="accent-text">Dev</span></span>
+        </a>
+        <p>Forging high-performance digital masterpieces with precision and modern elegance.</p>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <a href="#hero">Forge Home</a>
+          <a href="#workbench">Workbench</a>
+          <a href="#showcase">Artifacts</a>
+          <a href="#terminal-section">CLI Tool</a>
+        </div>
+        <div class="footer-col">
+          <h5>Repository</h5>
+          <a href="https://github.com/Rokan0-0/BlacksmithDev" target="_blank" rel="noopener">GitHub Project</a>
+          <a href="https://github.com/Rokan0-0/BlacksmithDev/commits/main" target="_blank" rel="noopener">Commit Log</a>
+          <a href="https://github.com/Rokan0-0/BlacksmithDev/issues" target="_blank" rel="noopener">Issue Tracker</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container flex-between">
+        <p>&copy; 2026 BlacksmithDev. All rights reserved.</p>
+        <p><i class="fa-solid fa-code"></i> Maintained by <a href="https://github.com/Rokan0-0" target="_blank" class="accent-text">Rokan0-0</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
