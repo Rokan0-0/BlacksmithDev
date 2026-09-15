@@ -3,6 +3,34 @@ const { v4: uuidv4 } = require('uuid');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
+function makeGetRequest(path) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(path, BASE_URL);
+    const req = http.request(
+      url,
+      {
+        method: 'GET',
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => {
+          let parsed;
+          try {
+            parsed = JSON.parse(body);
+          } catch {
+            parsed = body;
+          }
+          resolve({ status: res.statusCode, body: parsed });
+        });
+      }
+    );
+
+    req.on('error', (err) => reject(err));
+    req.end();
+  });
+}
+
 function makePostRequest(path, payload) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE_URL);
@@ -51,8 +79,8 @@ async function runConcurrencyTests() {
   }
   console.log('[Setup] Database reset complete.\n');
 
-  const targetSlotId = '22222222-2222-2222-2222-222222222222'; // 10:00 AM slot
-  const expectedTime = '10:00 AM';
+  const targetSlotId = '22222222-2222-2222-2222-222222222222'; // 10:00 slot
+  const expectedTime = '10:00';
 
   // ----------------------------------------------------
   // TEST 1: RACE CONDITION PROOF (Different Idempotency Keys)
@@ -65,8 +93,6 @@ async function runConcurrencyTests() {
   const key2 = `idempotency-key-race-B-${uuidv4()}`;
 
   console.log(`Firing 2 simultaneous POST /book requests for slot ${targetSlotId}...`);
-  console.log(`  - Request A Key: ${key1}`);
-  console.log(`  - Request B Key: ${key2}`);
 
   const [resA, resB] = await Promise.all([
     makePostRequest('/book', { slot_id: targetSlotId, idempotency_key: key1 }),
@@ -85,7 +111,6 @@ async function runConcurrencyTests() {
   let test1Passed = false;
   if (statuses[0] === 200 && statuses[1] === 409) {
     const refusalRes = resA.status === 409 ? resA : resB;
-    const successRes = resA.status === 200 ? resA : resB;
 
     if (refusalRes.body === expectedRefusal) {
       test1Passed = true;
@@ -110,21 +135,15 @@ async function runConcurrencyTests() {
   console.log('TEST 2: Idempotency Proof (2 Concurrent Requests with SAME Key)');
   console.log('--------------------------------------------------');
 
-  const slotId2 = '33333333-3333-3333-3333-333333333333'; // 02:00 PM slot
+  const slotId2 = '33333333-3333-3333-3333-333333333333'; // 14:00 slot
   const sameKey = `idempotency-key-same-${uuidv4()}`;
 
-  console.log(`Firing 2 simultaneous POST /book requests for slot ${slotId2} with SAME key (${sameKey})...`);
+  console.log(`Firing 2 simultaneous POST /book requests for slot ${slotId2} with SAME key...`);
 
   const [resIdem1, resIdem2] = await Promise.all([
     makePostRequest('/book', { slot_id: slotId2, idempotency_key: sameKey }),
     makePostRequest('/book', { slot_id: slotId2, idempotency_key: sameKey }),
   ]);
-
-  console.log('\nResponses Received:');
-  console.log(`  - Response 1 Status: ${resIdem1.status}`);
-  console.log(`  - Response 1 Body:   ${JSON.stringify(resIdem1.body)}`);
-  console.log(`  - Response 2 Status: ${resIdem2.status}`);
-  console.log(`  - Response 2 Body:   ${JSON.stringify(resIdem2.body)}`);
 
   let test2Passed = false;
   if (
@@ -133,16 +152,42 @@ async function runConcurrencyTests() {
     JSON.stringify(resIdem1.body) === JSON.stringify(resIdem2.body)
   ) {
     test2Passed = true;
-    console.log('\n✅ TEST 2 PASSED!');
+    console.log('✅ TEST 2 PASSED!');
     console.log('   - Both requests returned HTTP 200 OK.');
     console.log('   - Hold-and-return logic successfully returned identical booking payloads.');
   } else {
-    console.error('\n❌ TEST 2 FAILED: Idempotent responses were not identical or not 200!');
+    console.error('❌ TEST 2 FAILED: Idempotent responses were not identical or not 200!');
+  }
+
+  // ----------------------------------------------------
+  // TEST 3: LIST ENDPOINT GET /slots (Clinician Slot Listing)
+  // ----------------------------------------------------
+  console.log('\n--------------------------------------------------');
+  console.log('TEST 3: List Endpoint GET /slots');
+  console.log('--------------------------------------------------');
+
+  const listRes1 = await makeGetRequest('/slots?clinician_id=dr-smith');
+  const listRes2 = await makeGetRequest('/slots?clinician_id=non-existent-doctor');
+
+  let test3Passed = false;
+  if (
+    listRes1.status === 200 &&
+    Array.isArray(listRes1.body) &&
+    listRes2.status === 200 &&
+    Array.isArray(listRes2.body) &&
+    listRes2.body.length === 0
+  ) {
+    test3Passed = true;
+    console.log('✅ TEST 3 PASSED!');
+    console.log(`   - GET /slots?clinician_id=dr-smith returned ${listRes1.body.length} available slots.`);
+    console.log('   - GET /slots for unknown clinician returned clean empty array [] with HTTP 200.');
+  } else {
+    console.error('❌ TEST 3 FAILED: List endpoint did not return expected status or format!');
   }
 
   console.log('\n==================================================');
-  if (test1Passed && test2Passed) {
-    console.log('🎉 ALL CONCURRENCY & ISOLATION TESTS PASSED PERFECTLY!');
+  if (test1Passed && test2Passed && test3Passed) {
+    console.log('🎉 ALL CONCURRENCY, IDEMPOTENCY & LIST TESTS PASSED PERFECTLY!');
     console.log('==================================================\n');
     process.exit(0);
   } else {

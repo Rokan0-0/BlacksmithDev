@@ -27,12 +27,14 @@ class InMemoryPgAdapter {
       implementation: () => crypto.randomUUID(),
     });
 
-    // Create tables in memory
+    // Create tables in memory with clinician_id and unique_slot constraint
     this.memDb.public.none(`
       CREATE TABLE IF NOT EXISTS slots (
         id UUID PRIMARY KEY,
+        clinician_id VARCHAR(255) NOT NULL,
         time VARCHAR(255) NOT NULL,
-        status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE'
+        status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE',
+        CONSTRAINT unique_slot UNIQUE (clinician_id, time)
       );
       CREATE TABLE IF NOT EXISTS idempotency_keys (
         key VARCHAR(255) PRIMARY KEY,
@@ -69,15 +71,17 @@ async function initDb() {
         $$;
         CREATE TABLE IF NOT EXISTS slots (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          clinician_id VARCHAR(255) NOT NULL,
           time VARCHAR(255) NOT NULL,
-          status slot_status NOT NULL DEFAULT 'AVAILABLE'
+          status slot_status NOT NULL DEFAULT 'AVAILABLE',
+          CONSTRAINT unique_slot UNIQUE (clinician_id, time)
         );
         CREATE TABLE IF NOT EXISTS idempotency_keys (
           key VARCHAR(255) PRIMARY KEY,
           booking_result JSONB DEFAULT NULL,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
-        CREATE INDEX IF NOT EXISTS idx_slots_id_status ON slots(id, status);
+        CREATE INDEX IF NOT EXISTS idx_slots_clinician_status ON slots(clinician_id, status);
       `);
       console.log('[DB Init] Connected to native PostgreSQL database.');
       isInMemory = false;

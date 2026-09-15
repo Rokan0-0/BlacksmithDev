@@ -7,6 +7,31 @@ app.use(express.json());
 const LOCK_TIMEOUT_MS = process.env.LOCK_TIMEOUT_MS || '2000ms';
 
 /**
+ * List Endpoint: GET /slots
+ * Returns all AVAILABLE slots for a specific clinician ordered by time.
+ * If no slots are found, returns a clean empty array [] with HTTP 200.
+ */
+app.get('/slots', async (req, res) => {
+  const { clinician_id } = req.query;
+
+  if (!clinician_id) {
+    return res.status(400).json({ error: 'clinician_id query parameter is required.' });
+  }
+
+  try {
+    const result = await db.query(
+      "SELECT id, time, status FROM slots WHERE clinician_id = $1 AND status = 'AVAILABLE' ORDER BY time",
+      [clinician_id]
+    );
+
+    return res.status(200).json(result.rows || []);
+  } catch (error) {
+    console.error('[GET /slots Error]:', error);
+    return res.status(500).json({ error: 'Internal server error while fetching slots.' });
+  }
+});
+
+/**
  * Core Endpoint: POST /book
  * Implements atomic booking, lock_timeout protection, 
  * idempotency hold-and-return logic, and race condition prevention.
@@ -70,7 +95,7 @@ app.post('/book', async (req, res) => {
 
     // 3. Fetch Slot Details (to acquire time string for potential refusal message)
     const slotCheck = await client.query(
-      'SELECT id, time, status FROM slots WHERE id = $1',
+      'SELECT id, time, status, clinician_id FROM slots WHERE id = $1',
       [slot_id]
     );
 
@@ -89,7 +114,7 @@ app.post('/book', async (req, res) => {
     // 4. The Booking Write (Atomic Concurrency Token Update)
     // UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE';
     const updateResult = await client.query(
-      "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time, status",
+      "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time, status, clinician_id",
       [slot_id]
     );
 
@@ -116,6 +141,7 @@ app.post('/book', async (req, res) => {
         id: bookedSlot.id,
         time: bookedSlot.time,
         status: bookedSlot.status,
+        clinician_id: bookedSlot.clinician_id,
       },
     };
 
@@ -144,13 +170,13 @@ app.post('/reset-test-data', async (req, res) => {
     await db.query('DELETE FROM idempotency_keys');
     await db.query('DELETE FROM slots');
     await db.query(
-      "INSERT INTO slots (id, time, status) VALUES ('11111111-1111-1111-1111-111111111111', '09:00 AM', 'AVAILABLE')"
+      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('11111111-1111-1111-1111-111111111111', 'dr-smith', '09:00', 'AVAILABLE')"
     );
     await db.query(
-      "INSERT INTO slots (id, time, status) VALUES ('22222222-2222-2222-2222-222222222222', '10:00 AM', 'AVAILABLE')"
+      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('22222222-2222-2222-2222-222222222222', 'dr-smith', '10:00', 'AVAILABLE')"
     );
     await db.query(
-      "INSERT INTO slots (id, time, status) VALUES ('33333333-3333-3333-3333-333333333333', '02:00 PM', 'AVAILABLE')"
+      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('33333333-3333-3333-3333-333333333333', 'dr-smith', '14:00', 'AVAILABLE')"
     );
     res.json({ message: 'Database reset successfully with test slots.' });
   } catch (err) {
