@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlacksmithDev — Patient Slot Forge & Developer Suite</title>
+  <meta name="description" content="BlacksmithDev is a high-performance web platform, patient appointment forge, and developer workbench built with transaction isolation.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Canvas Background for Floating Embers & Sparks -->
+  <canvas id="ember-canvas"></canvas>
+
+  <!-- App Header & Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-anvil"></i>
+        </div>
+        <span class="brand-name">Blacksmith<span class="accent-text">Dev</span></span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#hero" class="nav-link active"><i class="fa-solid fa-fire"></i> Forge Home</a>
+        <a href="#booking-section" class="nav-link"><i class="fa-solid fa-calendar-check"></i> Patient Booking</a>
+        <a href="#workbench" class="nav-link"><i class="fa-solid fa-code"></i> Workbench</a>
+        <a href="#terminal-section" class="nav-link"><i class="fa-solid fa-terminal"></i> CLI</a>
+        <a href="#capabilities" class="nav-link"><i class="fa-solid fa-microchip"></i> Stack</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/Rokan0-0/BlacksmithDev" target="_blank" rel="noopener noreferrer" class="btn btn-outline" id="github-link-btn">
+          <i class="fa-brands fa-github"></i> GitHub Repo
+        </a>
+        <a href="#booking-section" class="btn btn-primary">
+          <i class="fa-solid fa-hammer"></i> Book Slot
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="hero" class="hero-section">
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <div class="container hero-content">
+      <div class="badge">
+        <span class="badge-dot"></span> BlacksmithDev v1.0 • Transaction Isolated Booking Engine
+      </div>
+      <h1 class="hero-title">
+        Forging High-Performance <br>
+        <span class="gradient-text">Patient Slot Scheduling</span>
+      </h1>
+      <p class="hero-subtitle">
+        Reserve open clinician slots with zero race conditions, atomic database transaction isolation, and instant hold-and-return idempotency.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#booking-section" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-calendar-days"></i> Reserve Patient Slot
+        </a>
+        <a href="#terminal-section" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-terminal"></i> Launch Interactive CLI
+        </a>
+      </div>
+
+      <!-- Metrics Bar -->
+      <div class="hero-metrics grid-3">
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="100">100%</span>
+            <span class="metric-label">Transaction Isolation</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="0">0%</span>
+            <span class="metric-label">Race Condition Probability</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="metric-data">
+            <span class="metric-value" data-target="2000">2000ms</span>
+            <span class="metric-label">Session Lock Timeout</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Patient Booking Section (AC 01, AC 02, AC 03, AC 04, AC 05) -->
+  <section id="booking-section" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-calendar-check"></i> PATIENT SLOT FORGE</div>
+        <h2 class="section-title">Schedule an Appointment</h2>
+        <p class="section-description">Select an open slot below. Booking transactions are guaranteed atomic with strict concurrency locks.</p>
+      </div>
+
+      <!-- Controls & Clinician Selector -->
+      <div class="booking-controls card-glass margin-bottom">
+        <div class="flex-between flex-wrap gap-md">
+          <div class="clinician-selector">
+            <label for="clinician-select"><i class="fa-solid fa-user-doctor text-ember"></i> Target Clinician:</label>
+            <select id="clinician-select" class="form-control-inline">
+              <option value="dr-smith" selected>Dr. Smith (Primary Care)</option>
+              <option value="dr-jones">Dr. Jones (Specialist)</option>
+            </select>
+          </div>
+          <div class="booking-actions">
+            <button id="btn-refresh-slots" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-rotate"></i> Refresh Open Slots
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-grid-layout">
+        <!-- Open Slots Grid Container -->
+        <div class="open-slots-panel card-glass">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-fire text-ember"></i> Open Clinician Slots</h3>
+            <span id="open-count-badge" class="badge-tag">Loading...</span>
+          </div>
+
+          <!-- Loading State -->
+          <div id="slots-loading" class="slots-loading-state">
+            <i class="fa-solid fa-circle-notch fa-spin text-ember"></i>
+            <p>Fetching available slots from the forge...</p>
+          </div>
+
+          <!-- Slots Container -->
+          <div id="slots-container" class="slots-grid hidden"></div>
+
+          <!-- Empty State (AC 05: Exact text "No open slots today.") -->
+          <div id="slots-empty" class="slots-empty-state hidden">
+            <div class="empty-icon"><i class="fa-solid fa-calendar-xmark text-muted"></i></div>
+            <h4 class="empty-text">No open slots today.</h4>
+            <p class="empty-subtext">All appointments for this clinician have been claimed. Please check back later or select another clinician.</p>
+          </div>
+        </div>
+
+        <!-- Your Bookings Panel (Persisted via localStorage) -->
+        <div class="your-bookings-panel card-glass">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-bookmark text-cyan"></i> Your Forged Appointments</h3>
+            <button id="btn-clear-my-bookings" class="btn-text-sm" title="Clear local booking history">Clear History</button>
+          </div>
+          
+          <div id="user-bookings-list" class="user-bookings-list">
+            <!-- Dynamically populated from localStorage -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workbench Section: Code Playground -->
+  <section id="workbench" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-screwdriver-wrench"></i> DIGITAL FORGE WORKBENCH</div>
+        <h2 class="section-title">Craft & Test Code Snippets</h2>
+        <p class="section-description">Select template algorithms, configure parameters, and instantly forge production-ready code.</p>
+      </div>
+
+      <div class="workbench-grid">
+        <div class="workbench-controls card-glass">
+          <h3><i class="fa-solid fa-sliders"></i> Forge Parameters</h3>
+          
+          <div class="form-group">
+            <label for="template-select">Target Module Template</label>
+            <select id="template-select" class="form-control">
+              <option value="async-pipeline">Async Task Queue & Retry Engine</option>
+              <option value="state-store">Reactive State Store with History</option>
+              <option value="rate-limiter">Token Bucket Rate Limiter</option>
+              <option value="ws-client">Resilient WebSocket Manager</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="language-select">Target Language</label>
+            <select id="language-select" class="form-control">
+              <option value="typescript">TypeScript (Strict)</option>
+              <option value="javascript">JavaScript (ES2024)</option>
+              <option value="python">Python 3.12 (Asyncio)</option>
+              <option value="rust">Rust (Tokio / Safe)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="concurrency-range">Concurrency Level: <span id="concurrency-val">8</span></label>
+            <input type="range" id="concurrency-range" min="1" max="32" value="8" class="form-range">
+          </div>
+
+          <button id="btn-forge-code" class="btn btn-primary btn-full">
+            <i class="fa-solid fa-hammer"></i> Forge Code Snippet
+          </button>
+        </div>
+
+        <div class="workbench-editor card-glass">
+          <div class="editor-header">
+            <div class="window-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <div class="editor-tab" id="editor-filename">forged_pipeline.ts</div>
+            <button class="btn-copy" id="btn-copy-code" title="Copy to clipboard">
+              <i class="fa-regular fa-copy"></i> Copy
+            </button>
+          </div>
+          <div class="editor-body">
+            <pre><code id="code-display">// Select parameters on the left and click "Forge Code Snippet" to generate code.</code></pre>
+          </div>
+          <div class="editor-footer">
+            <span id="forge-status"><i class="fa-solid fa-circle-check"></i> Status: Idle & Ready</span>
+            <span id="char-count">0 lines • UTF-8</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive CLI Simulator -->
+  <section id="terminal-section" class="section section-dark">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-terminal"></i> BLACKSMITH CLI V1.0</div>
+        <h2 class="section-title">Interactive Terminal Experience</h2>
+        <p class="section-description">Type commands below to inspect project status, run simulated benchmarks, or forge new assets.</p>
+      </div>
+
+      <div class="terminal-container card-glass">
+        <div class="terminal-header">
+          <div class="terminal-title"><i class="fa-solid fa-square-terminal"></i> blacksmith-cli -- bash - 80x24</div>
+          <div class="terminal-help-hint">Type <code>help</code> for available commands</div>
+        </div>
+        <div class="terminal-body" id="terminal-output">
+          <div class="term-line info">Welcome to <span class="term-highlight">BlacksmithDev CLI v1.0.4</span> [Environment: Node.js/PostgreSQL]</div>
+          <div class="term-line info">Type '<span class="term-cmd">help</span>' to list available commands.</div>
+          <div class="term-line info">Repository: <span class="term-link">https://github.com/Rokan0-0/BlacksmithDev.git</span></div>
+          <div class="term-line">&nbsp;</div>
+        </div>
+        <div class="terminal-input-line">
+          <span class="prompt">rokan@blacksmith:~$</span>
+          <input type="text" id="terminal-input" placeholder="type command here... (e.g. slots, status, bench, help)" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Capabilities Stack Section -->
+  <section id="capabilities" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-layer-group"></i> ENGINEERING TECH STACK</div>
+        <h2 class="section-title">Capabilities & Stack Matrix</h2>
+        <p class="section-description">Mastery across modern full-stack development, cloud architecture, and transaction isolation.</p>
+      </div>
+
+      <div class="stack-grid">
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-database text-ember"></i> Database Concurrency</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-ember"></i> PostgreSQL Session Lock Timeouts</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Status-Based Concurrency Tokens</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Hold-and-Return Idempotency Engine</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Unique Slot Constraints (`clinician_id`, `time`)</li>
+          </ul>
+        </div>
+
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-server text-cyan"></i> Backend & API Services</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-cyan"></i> Express.js & `pg` Connection Pooling</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Atomic `POST /book` Endpoint</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Idempotent Seeding Scripts (`seed.js`)</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> In-Memory PostgreSQL Fallback (`pg-mem`)</li>
+          </ul>
+        </div>
+
+        <div class="stack-box card-glass">
+          <h4><i class="fa-solid fa-laptop-code text-ember"></i> Frontend & UX Excellence</h4>
+          <ul>
+            <li><i class="fa-solid fa-check text-ember"></i> Dark Glassmorphism Design System</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Real-time Slot Patching & State Sync</li>
+            <li><i class="fa-solid fa-check text-ember"></i> LocalStorage Booking Persistence</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Custom Forge Voice Notifications</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <a href="#" class="brand-logo">
+          <i class="fa-solid fa-anvil logo-icon"></i>
+          <span>Blacksmith<span class="accent-text">Dev</span></span>
+        </a>
+        <p>Forging high-performance digital masterpieces with precision and modern elegance.</p>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <a href="#hero">Forge Home</a>
+          <a href="#booking-section">Patient Booking</a>
+          <a href="#workbench">Workbench</a>
+          <a href="#terminal-section">CLI Tool</a>
+        </div>
+        <div class="footer-col">
+          <h5>Repository</h5>
+          <a href="https://github.com/Rokan0-0/BlacksmithDev" target="_blank" rel="noopener">GitHub Project</a>
+          <a href="https://github.com/Rokan0-0/BlacksmithDev/commits/main" target="_blank" rel="noopener">Commit Log</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container flex-between">
+        <p>&copy; 2026 BlacksmithDev. All rights reserved.</p>
+        <p><i class="fa-solid fa-code"></i> Maintained by <a href="https://github.com/Rokan0-0" target="_blank" class="accent-text">Rokan0-0</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

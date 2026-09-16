@@ -1,9 +1,11 @@
 const express = require('express');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 const LOCK_TIMEOUT_MS = process.env.LOCK_TIMEOUT_MS || '2000ms';
 
