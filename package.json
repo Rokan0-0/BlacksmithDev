@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "seed": "node seed.js",
     "test-concurrency": "node scripts/test-concurrency.js"
   },
   "dependencies": {
