@@ -5,10 +5,15 @@ const db = require('./db');
  * Idempotent Seed Script for Clinician Slots
  * Seeds hourly slots from 09:00 to 17:00 for a given clinician_id.
  */
-async function seedClinicianSlots(clinicianId = 'dr-smith') {
+async function seedClinicianSlots(clinicianId = 'dr-smith', allowInMemory = false) {
   console.log(`[Seed] Initializing slot seeding for clinician: '${clinicianId}'...`);
   
   await db.initDb();
+
+  // Strict check required by PR feedback unless explicitly allowed during testing mock
+  if (!allowInMemory && db.isInMemoryMode && db.isInMemoryMode()) {
+    throw new Error("FATAL: Cannot seed an in-memory database. Postgres must be running.");
+  }
 
   const hourlyTimes = [
     '09:00',
@@ -48,6 +53,7 @@ async function seedClinicianSlots(clinicianId = 'dr-smith') {
   }
 
   console.log(`\n[Seed Summary] Clinician '${clinicianId}': ${insertedCount} inserted, ${skippedCount} skipped.`);
+  return { insertedCount, skippedCount };
 }
 
 if (require.main === module) {
@@ -58,7 +64,7 @@ if (require.main === module) {
       process.exit(0);
     })
     .catch((err) => {
-      console.error('[Seed Error]:', err);
+      console.error('[Seed Error]:', err.message);
       process.exit(1);
     });
 }

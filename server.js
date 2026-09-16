@@ -1,4 +1,5 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
 
 const app = express();
@@ -169,16 +170,23 @@ app.post('/reset-test-data', async (req, res) => {
   try {
     await db.query('DELETE FROM idempotency_keys');
     await db.query('DELETE FROM slots');
-    await db.query(
-      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('11111111-1111-1111-1111-111111111111', 'dr-smith', '09:00', 'AVAILABLE')"
-    );
-    await db.query(
-      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('22222222-2222-2222-2222-222222222222', 'dr-smith', '10:00', 'AVAILABLE')"
-    );
-    await db.query(
-      "INSERT INTO slots (id, clinician_id, time, status) VALUES ('33333333-3333-3333-3333-333333333333', 'dr-smith', '14:00', 'AVAILABLE')"
-    );
-    res.json({ message: 'Database reset successfully with test slots.' });
+    
+    const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    const slotMap = {
+      '09:00': '11111111-1111-1111-1111-111111111111',
+      '10:00': '22222222-2222-2222-2222-222222222222',
+      '14:00': '33333333-3333-3333-3333-333333333333',
+    };
+
+    for (const t of times) {
+      const id = slotMap[t] || uuidv4();
+      await db.query(
+        "INSERT INTO slots (id, clinician_id, time, status) VALUES ($1, 'dr-smith', $2, 'AVAILABLE') ON CONFLICT (clinician_id, time) DO NOTHING",
+        [id, t]
+      );
+    }
+
+    res.json({ message: 'Database reset successfully with 9 test slots for dr-smith.' });
   } catch (err) {
     console.error('[Reset Test Data Error]:', err);
     res.status(500).json({ error: err.message });

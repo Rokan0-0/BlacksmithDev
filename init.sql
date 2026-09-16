@@ -10,14 +10,26 @@ BEGIN
 END
 $$;
 
--- Slots Table with Clinician ID and Unique Slot Constraint
+-- Slots Table Base Creation
 CREATE TABLE IF NOT EXISTS slots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  clinician_id VARCHAR(255) NOT NULL,
   time VARCHAR(255) NOT NULL,
-  status slot_status NOT NULL DEFAULT 'AVAILABLE',
-  CONSTRAINT unique_slot UNIQUE (clinician_id, time)
+  status slot_status NOT NULL DEFAULT 'AVAILABLE'
 );
+
+-- Safe Schema Migration: Upgrade existing slots table with clinician_id column if missing
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS clinician_id VARCHAR(255);
+
+-- Add Unique Constraint on (clinician_id, time) safely
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_slot'
+  ) THEN
+    ALTER TABLE slots ADD CONSTRAINT unique_slot UNIQUE (clinician_id, time);
+  END IF;
+END
+$$;
 
 -- Idempotency Keys Table
 CREATE TABLE IF NOT EXISTS idempotency_keys (
