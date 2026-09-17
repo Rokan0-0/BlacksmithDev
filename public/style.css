@@ -290,6 +290,12 @@ code, pre {
   border-radius: var(--radius-sm);
 }
 
+.badge-tag.badge-offline {
+  background: rgba(255, 107, 0, 0.15);
+  color: var(--color-flame);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+}
+
 /* Navbar */
 .navbar {
   position: fixed;

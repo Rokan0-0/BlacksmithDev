@@ -279,26 +279,49 @@ function initBookingForge() {
       const response = await fetch(`/bookings?clinician_id=${encodeURIComponent(clinicianId)}`);
 
       let bookings = [];
+      let isOfflineFallback = false;
+
       if (response.ok) {
         bookings = await response.json();
       } else {
-        bookings = getLocalBookings();
+        isOfflineFallback = true;
+        const allLocal = getLocalBookings();
+        bookings = allLocal.filter((item) => (item.clinician_id || 'dr-smith') === clinicianId);
       }
 
-      if (!Array.isArray(bookings) || bookings.length === 0) {
-        userBookingsList.innerHTML = `
-          <div class="booking-empty-hint">
-            <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-            No appointments forged yet. Claim an open slot above to reserve your time.
+      renderBookingsList(bookings, isOfflineFallback, clinicianId);
+    } catch (err) {
+      console.error('[Fetch Bookings Error]:', err);
+      const allLocal = getLocalBookings();
+      const bookings = allLocal.filter((item) => (item.clinician_id || 'dr-smith') === clinicianId);
+      renderBookingsList(bookings, true, clinicianId);
+    }
+  }
+
+  function renderBookingsList(bookings, isOfflineFallback, clinicianId) {
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+      userBookingsList.innerHTML = `
+        <div class="booking-empty-hint">
+          <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+          No appointments forged yet. Claim an open slot above to reserve your time.
+        </div>
+      `;
+      return;
+    }
+
+    userBookingsList.innerHTML = '';
+    bookings.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'booking-item';
+      if (isOfflineFallback) {
+        div.innerHTML = `
+          <div>
+            <div class="booking-item-time"><i class="fa-solid fa-calendar-check text-cyan"></i> ${escapeHtml(item.time)}</div>
+            <div class="booking-item-details">Clinician: ${escapeHtml(item.clinician_id || clinicianId)}</div>
           </div>
+          <span class="badge-tag badge-offline"><i class="fa-solid fa-wifi"></i> [OFFLINE CACHE - MAY BE STALE]</span>
         `;
-        return;
-      }
-
-      userBookingsList.innerHTML = '';
-      bookings.forEach((item) => {
-        const div = document.createElement('div');
-        div.className = 'booking-item';
+      } else {
         div.innerHTML = `
           <div>
             <div class="booking-item-time"><i class="fa-solid fa-calendar-check text-cyan"></i> ${escapeHtml(item.time)}</div>
@@ -306,11 +329,9 @@ function initBookingForge() {
           </div>
           <span class="badge-tag"><i class="fa-solid fa-lock"></i> BOOKED</span>
         `;
-        userBookingsList.appendChild(div);
-      });
-    } catch (err) {
-      console.error('[Fetch Bookings Error]:', err);
-    }
+      }
+      userBookingsList.appendChild(div);
+    });
   }
 
   function saveLocalBooking(item) {
@@ -623,5 +644,10 @@ function showToast(message, type = 'success') {
 
 function escapeHtml(str) {
   if (typeof str !== 'string') return str;
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }

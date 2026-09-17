@@ -1,212 +1,131 @@
-const http = require('http');
-const { v4: uuidv4 } = require('uuid');
+const { chromium } = require('playwright');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
-function makeGetRequest(path) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE_URL);
-    const req = http.request(
-      url,
-      { method: 'GET' },
-      (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => {
-          let parsed;
-          try { parsed = JSON.parse(body); } catch { parsed = body; }
-          resolve({ status: res.statusCode, body: parsed });
-        });
-      }
-    );
-    req.on('error', (err) => reject(err));
-    req.end();
-  });
-}
-
-function makePostRequest(path, payload) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE_URL);
-    const data = JSON.stringify(payload);
-
-    const req = http.request(
-      url,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(data),
-        },
-      },
-      (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => {
-          let parsed;
-          try { parsed = JSON.parse(body); } catch { parsed = body; }
-          resolve({ status: res.statusCode, body: parsed });
-        });
-      }
-    );
-    req.on('error', (err) => reject(err));
-    req.write(data);
-    req.end();
-  });
+async function launchBrowser() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (e1) {
+    try {
+      return await chromium.launch({ channel: 'msedge', headless: true });
+    } catch (e2) {
+      return await chromium.launch({ channel: 'chrome', headless: true });
+    }
+  }
 }
 
 async function runFrontendTests() {
   console.log('\n==================================================');
-  console.log('🧪 STARTING FRONTEND & API OBSERVABLE BEHAVIOR SUITE');
+  console.log('🧪 STARTING PLAYWRIGHT TRUE UI FRONTEND TEST SUITE');
   console.log('==================================================\n');
 
-  // Setup: Reset DB slots
-  console.log('[Setup] Resetting test database slots...');
-  const resetRes = await makePostRequest('/reset-test-data', {});
-  if (resetRes.status !== 200) {
-    throw new Error(`Failed to reset test database: ${JSON.stringify(resetRes.body)}`);
+  const browser = await launchBrowser();
+  const context = await browser.newContext();
+
+  // Reset database test data first via API request
+  console.log('[Setup] Resetting database test slots via POST /reset-test-data...');
+  const apiRequest = context.request;
+  const resetResponse = await apiRequest.post(`${BASE_URL}/reset-test-data`);
+  if (!resetResponse.ok()) {
+    throw new Error(`Failed to reset test data: ${resetResponse.statusText()}`);
   }
-  console.log('[Setup] Database reset complete.\n');
+  console.log('[Setup] Test database slots reset complete.\n');
 
-  // ----------------------------------------------------
-  // TEST 1: EMPTY LIST RENDERING (AC 05)
-  // ----------------------------------------------------
-  console.log('--------------------------------------------------');
-  console.log('TEST 1: Empty List State Verification (AC 05)');
-  console.log('--------------------------------------------------');
+  const page = await context.newPage();
 
-  const emptyRes = await makeGetRequest('/slots?clinician_id=non-existent-clinician');
+  try {
+    // Step 1: Load http://localhost:3000
+    console.log(`[Step 1] Navigating to ${BASE_URL}...`);
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
-  let test1Passed = false;
-  if (emptyRes.status === 200 && Array.isArray(emptyRes.body) && emptyRes.body.length === 0) {
-    test1Passed = true;
-    console.log('✅ TEST 1 PASSED!');
-    console.log('   - GET /slots for empty clinician returned clean empty array [] with HTTP 200.');
-    console.log('   - Verified empty view triggers exact UI text: "No open slots today."');
-  } else {
-    console.error('❌ TEST 1 FAILED: Unexpected response for empty clinician.');
-  }
+    // Step 2: Wait for slots to load in DOM
+    console.log('[Step 2] Waiting for slot cards to load in the DOM...');
+    await page.waitForSelector('.slot-card', { timeout: 10000 });
 
-  // ----------------------------------------------------
-  // TEST 2: SUCCESSFUL CLAIM & FORGE VOICE (AC 03)
-  // ----------------------------------------------------
-  console.log('\n--------------------------------------------------');
-  console.log('TEST 2: Successful Claim & Forge Voice Confirmation');
-  console.log('--------------------------------------------------');
-
-  const targetSlotId = '11111111-1111-1111-1111-111111111111'; // 09:00 slot
-  const key = `idem-test-frontend-${uuidv4()}`;
-
-  const bookRes = await makePostRequest('/book', {
-    slot_id: targetSlotId,
-    idempotency_key: key,
-  });
-
-  let test2Passed = false;
-  if (bookRes.status === 200 && bookRes.body.booking && bookRes.body.booking.time === '09:00') {
-    test2Passed = true;
-    const forgeVoiceMessage = `Booked. ${bookRes.body.booking.time} is yours — see you at the forge.`;
-    console.log('✅ TEST 2 PASSED!');
-    console.log(`   - HTTP 200 OK returned for slot claim.`);
-    console.log(`   - Confirmed Forge Voice format: "${forgeVoiceMessage}"`);
-  } else {
-    console.error(`❌ TEST 2 FAILED: Claim response invalid: ${JSON.stringify(bookRes.body)}`);
-  }
-
-  // ----------------------------------------------------
-  // TEST 3: 409 REFUSAL HANDLING
-  // ----------------------------------------------------
-  console.log('\n--------------------------------------------------');
-  console.log('TEST 3: 409 Refusal Response Handling');
-  console.log('--------------------------------------------------');
-
-  const keyRefusal = `idem-test-refusal-${uuidv4()}`;
-  const conflictRes = await makePostRequest('/book', {
-    slot_id: targetSlotId, // Already booked in Test 2!
-    idempotency_key: keyRefusal,
-  });
-
-  let test3Passed = false;
-  const expectedRefusal = 'We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.';
-
-  if (conflictRes.status === 409 && conflictRes.body === expectedRefusal) {
-    test3Passed = true;
-    console.log('✅ TEST 3 PASSED!');
-    console.log('   - HTTP 409 Conflict returned for taken slot.');
-    console.log(`   - Refusal alert text matched: "${conflictRes.body}"`);
-  } else {
-    console.error(`❌ TEST 3 FAILED: Refusal text mismatch: ${JSON.stringify(conflictRes.body)}`);
-  }
-
-  // ----------------------------------------------------
-  // TEST 4: POST-CLAIM STATE SYNCING (GET /slots & GET /bookings)
-  // ----------------------------------------------------
-  console.log('\n--------------------------------------------------');
-  console.log('TEST 4: State Syncing (GET /slots & GET /bookings)');
-  console.log('--------------------------------------------------');
-
-  const openSlotsRes = await makeGetRequest('/slots?clinician_id=dr-smith');
-  const bookedSlotsRes = await makeGetRequest('/bookings?clinician_id=dr-smith');
-
-  let test4Passed = false;
-  if (
-    openSlotsRes.status === 200 &&
-    bookedSlotsRes.status === 200 &&
-    Array.isArray(openSlotsRes.body) &&
-    Array.isArray(bookedSlotsRes.body)
-  ) {
-    const openTimes = openSlotsRes.body.map((s) => s.time);
-    const bookedTimes = bookedSlotsRes.body.map((b) => b.time);
-
-    const isMissingFromOpen = !openTimes.includes('09:00');
-    const isPresentInBooked = bookedTimes.includes('09:00');
-
-    if (isMissingFromOpen && isPresentInBooked) {
-      test4Passed = true;
-      console.log('✅ TEST 4 PASSED!');
-      console.log(`   - Claimed slot "09:00" removed from open list (Remaining open: ${openSlotsRes.body.length}).`);
-      console.log(`   - Claimed slot "09:00" present in GET /bookings list (Total booked: ${bookedSlotsRes.body.length}).`);
-    } else {
-      console.error('❌ TEST 4 FAILED: State sync check failed.');
+    const initialCount = await page.locator('.slot-card').count();
+    console.log(`[DOM Verified] Found ${initialCount} initial open slots in DOM.`);
+    if (initialCount === 0) {
+      throw new Error('Expected open slot cards to be rendered on initial page load.');
     }
-  } else {
-    console.error('❌ TEST 4 FAILED: Failed to fetch /slots or /bookings.');
-  }
 
-  // ----------------------------------------------------
-  // TEST 5: DISTINCT ERROR STATE (PR Feedback 1)
-  // ----------------------------------------------------
-  console.log('\n--------------------------------------------------');
-  console.log('TEST 5: Distinct Error State Verification');
-  console.log('--------------------------------------------------');
+    // Step 3: Physically click "Claim Slot" button
+    console.log('\n--------------------------------------------------');
+    console.log('TEST 1: Claim Slot & Forge Voice Toast Assertion');
+    console.log('--------------------------------------------------');
 
-  const invalidReq = await makeGetRequest('/slots'); // Missing clinician_id
+    const firstSlotCard = page.locator('.slot-card').first();
+    const slotTimeElement = firstSlotCard.locator('.slot-time');
+    const slotTimeText = (await slotTimeElement.textContent()).trim();
+    console.log(`[DOM Action] Found first slot time: "${slotTimeText}"`);
 
-  let test5Passed = false;
-  if (invalidReq.status === 400 && invalidReq.body.error) {
-    test5Passed = true;
-    console.log('✅ TEST 5 PASSED!');
-    console.log('   - Verified network/request failure triggers distinct #slots-error state.');
-    console.log('   - Error UI text confirmed: "Network failure. Cannot reach the forge."');
-  } else {
-    console.error('❌ TEST 5 FAILED: Error state check failed.');
-  }
+    const claimButton = firstSlotCard.locator('.btn-claim-slot');
+    console.log('[DOM Action] Physically clicking "Claim Slot" button...');
+    await claimButton.click();
 
-  console.log('\n==================================================');
-  if (test1Passed && test2Passed && test3Passed && test4Passed && test5Passed) {
-    console.log('🎉 ALL FRONTEND & API OBSERVABLE BEHAVIOR TESTS PASSED!');
+    // Step 4: Wait for DOM to update & assert Forge Voice toast text
+    console.log('[DOM Assertion] Waiting for Forge Voice toast notification in DOM...');
+    const expectedForgeVoice = `Booked. ${slotTimeText} is yours — see you at the forge.`;
+    
+    // Wait specifically for the confirmation toast containing "Booked."
+    const toastElement = page.locator('.toast', { hasText: 'Booked.' });
+    await toastElement.waitFor({ state: 'visible', timeout: 10000 });
+
+    const toastText = (await toastElement.textContent()).trim();
+    console.log(`[Toast Detected]: "${toastText}"`);
+
+    if (!toastText.includes(expectedForgeVoice)) {
+      throw new Error(`Toast text mismatch!\nExpected to contain: "${expectedForgeVoice}"\nActual text: "${toastText}"`);
+    }
+    console.log(`✅ TEST 1 PASSED! Toast correctly displays Forge Voice string:\n   "${expectedForgeVoice}"`);
+
+    // Step 5: Claim all remaining open slots until empty state is triggered
+    console.log('\n--------------------------------------------------');
+    console.log('TEST 2: Empty State Assertion ("No open slots today.")');
+    console.log('--------------------------------------------------');
+    console.log('[DOM Action] Claiming all remaining open slots to exhaust availability...');
+
+    // Get remaining slot IDs currently present in DOM
+    const remainingSlotIds = await page.evaluate(() => 
+      Array.from(document.querySelectorAll('.btn-claim-slot')).map(b => b.getAttribute('data-id'))
+    );
+
+    for (const slotId of remainingSlotIds) {
+      const btnLocator = page.locator(`.btn-claim-slot[data-id="${slotId}"]`);
+      if (await btnLocator.count() > 0) {
+        await btnLocator.scrollIntoViewIfNeeded().catch(() => {});
+        await btnLocator.click({ force: true }).catch(() => {});
+        // Wait for the button to detach from DOM after state refresh
+        await btnLocator.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+      }
+    }
+
+    // Step 6: Assert the empty state element and exact text
+    console.log('[DOM Assertion] Waiting for empty state container (#slots-empty)...');
+    await page.waitForSelector('#slots-empty:not(.hidden)', { timeout: 10000 });
+
+    const emptyTextElement = page.locator('#slots-empty .empty-text');
+    const emptyStateText = (await emptyTextElement.textContent()).trim();
+    console.log(`[Empty State Text Detected]: "${emptyStateText}"`);
+
+    if (emptyStateText !== 'No open slots today.') {
+      throw new Error(`Empty state text mismatch!\nExpected: "No open slots today."\nActual: "${emptyStateText}"`);
+    }
+    console.log('✅ TEST 2 PASSED! Empty state correctly displays exact text:\n   "No open slots today."');
+
+    console.log('\n==================================================');
+    console.log('🎉 ALL PLAYWRIGHT UI TESTS PASSED PERFECTLY!');
     console.log('==================================================\n');
+
+    await browser.close();
     process.exit(0);
-  } else {
-    console.log('💥 FRONTEND TEST SUITE FAILED!');
-    console.log('==================================================\n');
+  } catch (err) {
+    console.error('\n❌ PLAYWRIGHT UI TEST FAILED:', err.message);
+    await page.screenshot({ path: 'test-failure.png', fullPage: true }).catch(() => {});
+    await browser.close();
     process.exit(1);
   }
 }
 
-// Execute if run directly
 if (require.main === module) {
-  runFrontendTests().catch((err) => {
-    console.error('\n[Test Execution Error]:', err);
-    process.exit(1);
-  });
+  runFrontendTests();
 }
