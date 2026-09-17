@@ -1,6 +1,6 @@
 /**
  * BlacksmithDev — Patient Slot Forge & Interactive Workbench App
- * @author Senior Frontend Engineer
+ * @author Senior Full-Stack Engineer
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -88,61 +88,71 @@ function initEmberCanvas() {
 }
 
 /* ==========================================================================
-   2. Patient Slot Forge (AC 01, AC 02, AC 03, AC 04, AC 05)
+   2. Patient Slot Forge (PR Feedback 1, 2, 3)
    ========================================================================== */
 function initBookingForge() {
   const clinicianSelect = document.getElementById('clinician-select');
   const btnRefresh = document.getElementById('btn-refresh-slots');
+  const btnRetry = document.getElementById('btn-retry-slots');
   const slotsLoading = document.getElementById('slots-loading');
   const slotsContainer = document.getElementById('slots-container');
   const slotsEmpty = document.getElementById('slots-empty');
+  const slotsError = document.getElementById('slots-error');
   const openCountBadge = document.getElementById('open-count-badge');
   const userBookingsList = document.getElementById('user-bookings-list');
   const btnClearBookings = document.getElementById('btn-clear-my-bookings');
 
-  // Load user's booked slots from localStorage (AC 04)
-  let userBookings = loadUserBookings();
+  // Load booked slots from server API (GET /bookings) and sync with local state (PR Feedback 3)
+  fetchAndRenderBookings();
 
-  renderUserBookings();
-
-  // Fetch slots on page load (AC 02)
+  // Fetch slots on page load
   fetchAndRenderSlots();
 
   if (clinicianSelect) {
-    clinicianSelect.addEventListener('change', fetchAndRenderSlots);
+    clinicianSelect.addEventListener('change', () => {
+      fetchAndRenderSlots();
+      fetchAndRenderBookings();
+    });
   }
 
   if (btnRefresh) {
     btnRefresh.addEventListener('click', () => {
       fetchAndRenderSlots();
+      fetchAndRenderBookings();
       showToast('🔄 Refreshed available clinician slots.');
+    });
+  }
+
+  if (btnRetry) {
+    btnRetry.addEventListener('click', () => {
+      fetchAndRenderSlots();
+      fetchAndRenderBookings();
     });
   }
 
   if (btnClearBookings) {
     btnClearBookings.addEventListener('click', () => {
-      userBookings = [];
-      saveUserBookings(userBookings);
-      renderUserBookings();
+      localStorage.removeItem('my_blacksmith_bookings');
+      fetchAndRenderBookings();
       showToast('🧹 Local booking history cleared.');
-      fetchAndRenderSlots();
     });
   }
 
   async function fetchAndRenderSlots() {
     const clinicianId = clinicianSelect ? clinicianSelect.value : 'dr-smith';
 
-    // Show Loading State (AC 02)
+    // Reset View States
     slotsLoading.classList.remove('hidden');
     slotsContainer.classList.add('hidden');
     slotsEmpty.classList.add('hidden');
+    slotsError.classList.add('hidden');
     openCountBadge.textContent = 'Loading...';
 
     try {
       const response = await fetch(`/slots?clinician_id=${encodeURIComponent(clinicianId)}`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch slots (Status ${response.status})`);
+        throw new Error(`Server returned HTTP ${response.status}`);
       }
 
       const slots = await response.json();
@@ -180,27 +190,36 @@ function initBookingForge() {
         `;
 
         const claimBtn = slotCard.querySelector('.btn-claim-slot');
-        claimBtn.addEventListener('click', () => handleClaimSlot(slot));
+        claimBtn.addEventListener('click', (e) => handleClaimSlot(slot, e.currentTarget));
 
         slotsContainer.appendChild(slotCard);
       });
     } catch (err) {
       console.error('[Booking Forge Error]:', err);
+      // PR Feedback 3 Error Handling: Display #slots-error (Network failure. Cannot reach the forge.) instead of #slots-empty
       slotsLoading.classList.add('hidden');
-      slotsEmpty.classList.remove('hidden');
+      slotsContainer.classList.add('hidden');
+      slotsEmpty.classList.add('hidden');
+      slotsError.classList.remove('hidden');
       openCountBadge.textContent = 'Error';
-      showToast(`⚠️ ${err.message}`, 'error');
+      showToast(`⚠️ Network failure. Cannot reach the forge.`, 'error');
     }
   }
 
-  async function handleClaimSlot(slot) {
+  async function handleClaimSlot(slot, claimBtn) {
     const clinicianId = clinicianSelect ? clinicianSelect.value : 'dr-smith';
+
+    // PR Feedback 3 Button Guard: Immediately disable button & change text while in flight
+    if (claimBtn) {
+      claimBtn.disabled = true;
+      claimBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Claiming...';
+    }
+
     const idempotencyKey = `idem-book-${slot.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
     showToast(`🔨 Forging transaction for ${slot.time} slot...`);
 
     try {
-      // POST /book (AC 03)
       const response = await fetch('/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,25 +233,16 @@ function initBookingForge() {
 
       // On 200 OK: Confirmation in forge voice (AC 03)
       if (response.status === 200) {
-        let payload;
-        try { payload = JSON.parse(responseText); } catch { payload = {}; }
-
         const timeStr = slot.time;
         // Forge Voice: "Booked. 14:00 is yours — see you at the forge."
         const forgeVoiceMessage = `Booked. ${timeStr} is yours — see you at the forge.`;
         showToast(`🔥 ${forgeVoiceMessage}`);
 
-        // Save to user's bookings (localStorage)
-        userBookings.unshift({
-          id: slot.id,
-          time: timeStr,
-          clinician_id: clinicianId,
-          booked_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        });
-        saveUserBookings(userBookings);
-        renderUserBookings();
+        // Save local backup reference
+        saveLocalBooking({ id: slot.id, time: timeStr, clinician_id: clinicianId });
 
-        // UI State Synchronization (AC 04): Re-fetch slots so taken slot disappears
+        // PR Feedback 3 State Syncing: Fetch from GET /bookings and GET /slots after every successful booking
+        await fetchAndRenderBookings();
         await fetchAndRenderSlots();
         return;
       }
@@ -240,7 +250,6 @@ function initBookingForge() {
       // Handle 409 Conflict (Refusal string)
       if (response.status === 409) {
         showToast(`⚠️ ${responseText}`, 'error');
-        // Re-fetch to sync UI
         await fetchAndRenderSlots();
         return;
       }
@@ -251,51 +260,73 @@ function initBookingForge() {
     } catch (err) {
       console.error('[Book Slot Error]:', err);
       showToast(`❌ Network error claiming slot: ${err.message}`, 'error');
+      await fetchAndRenderSlots();
+    } finally {
+      if (claimBtn && claimBtn.isConnected) {
+        claimBtn.disabled = false;
+        claimBtn.innerHTML = '<i class="fa-solid fa-fire"></i> Claim Slot';
+      }
     }
   }
 
-  function renderUserBookings() {
+  // PR Feedback 3 State Syncing: Fetch bookings from GET /bookings endpoint
+  async function fetchAndRenderBookings() {
     if (!userBookingsList) return;
 
-    if (userBookings.length === 0) {
-      userBookingsList.innerHTML = `
-        <div class="booking-empty-hint">
-          <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-          No appointments forged yet. Claim an open slot above to reserve your time.
-        </div>
-      `;
-      return;
-    }
+    const clinicianId = clinicianSelect ? clinicianSelect.value : 'dr-smith';
 
-    userBookingsList.innerHTML = '';
-    userBookings.forEach((item) => {
-      const div = document.createElement('div');
-      div.className = 'booking-item';
-      div.innerHTML = `
-        <div>
-          <div class="booking-item-time"><i class="fa-solid fa-calendar-check text-cyan"></i> ${escapeHtml(item.time)}</div>
-          <div class="booking-item-details">Clinician: ${escapeHtml(item.clinician_id || 'dr-smith')} • Secured at ${escapeHtml(item.booked_at || 'Just now')}</div>
-        </div>
-        <span class="badge-tag"><i class="fa-solid fa-lock"></i> SECURED</span>
-      `;
-      userBookingsList.appendChild(div);
-    });
+    try {
+      const response = await fetch(`/bookings?clinician_id=${encodeURIComponent(clinicianId)}`);
+
+      let bookings = [];
+      if (response.ok) {
+        bookings = await response.json();
+      } else {
+        bookings = getLocalBookings();
+      }
+
+      if (!Array.isArray(bookings) || bookings.length === 0) {
+        userBookingsList.innerHTML = `
+          <div class="booking-empty-hint">
+            <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No appointments forged yet. Claim an open slot above to reserve your time.
+          </div>
+        `;
+        return;
+      }
+
+      userBookingsList.innerHTML = '';
+      bookings.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'booking-item';
+        div.innerHTML = `
+          <div>
+            <div class="booking-item-time"><i class="fa-solid fa-calendar-check text-cyan"></i> ${escapeHtml(item.time)}</div>
+            <div class="booking-item-details">Clinician: ${escapeHtml(item.clinician_id || clinicianId)} • Status: SECURED</div>
+          </div>
+          <span class="badge-tag"><i class="fa-solid fa-lock"></i> BOOKED</span>
+        `;
+        userBookingsList.appendChild(div);
+      });
+    } catch (err) {
+      console.error('[Fetch Bookings Error]:', err);
+    }
   }
 
-  function loadUserBookings() {
+  function saveLocalBooking(item) {
+    try {
+      const list = getLocalBookings();
+      list.unshift(item);
+      localStorage.setItem('my_blacksmith_bookings', JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function getLocalBookings() {
     try {
       const data = localStorage.getItem('my_blacksmith_bookings');
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
-    }
-  }
-
-  function saveUserBookings(list) {
-    try {
-      localStorage.setItem('my_blacksmith_bookings', JSON.stringify(list));
-    } catch (e) {
-      console.error('[LocalStorage Save Error]:', e);
     }
   }
 }
@@ -314,10 +345,8 @@ export async function bookSlotAtomic(pool: Pool, slotId: string, idempotencyKey:
     await client.query('BEGIN');
     await client.query("SET LOCAL lock_timeout = '2000ms'");
 
-    // Unique Insert for Idempotency
     await client.query('INSERT INTO idempotency_keys (key) VALUES ($1)', [idempotencyKey]);
 
-    // Atomic Concurrency Token Update
     const updateRes = await client.query(
       "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time",
       [slotId]
@@ -488,6 +517,7 @@ function initTerminal() {
       case 'help':
         appendLine('<span class="term-highlight">Available Commands:</span>', 'info');
         appendLine('  <span class="term-cmd">slots</span>        - Fetch available slots for dr-smith via GET /slots', 'info');
+        appendLine('  <span class="term-cmd">bookings</span>     - Fetch booked slots for dr-smith via GET /bookings', 'info');
         appendLine('  <span class="term-cmd">status</span>       - Display repository & branch status', 'info');
         appendLine('  <span class="term-cmd">bench</span>        - Run synthetic concurrency benchmark', 'info');
         appendLine('  <span class="term-cmd">clear</span>        - Clear terminal screen', 'info');
@@ -501,6 +531,19 @@ function initTerminal() {
             appendLine(`✅ Found ${slots.length} available slots for dr-smith:`, 'success');
             slots.forEach((s) => {
               appendLine(`  • [${s.time}] ID: ${s.id} (Status: ${s.status})`, 'info');
+            });
+          })
+          .catch((err) => appendLine(`Error: ${err.message}`, 'error'));
+        break;
+
+      case 'bookings':
+        appendLine('Querying GET /bookings?clinician_id=dr-smith...', 'warning');
+        fetch('/bookings?clinician_id=dr-smith')
+          .then((r) => r.json())
+          .then((bookings) => {
+            appendLine(`✅ Found ${bookings.length} booked slots for dr-smith:`, 'success');
+            bookings.forEach((b) => {
+              appendLine(`  • [${b.time}] ID: ${b.id} (Status: ${b.status})`, 'info');
             });
           })
           .catch((err) => appendLine(`Error: ${err.message}`, 'error'));

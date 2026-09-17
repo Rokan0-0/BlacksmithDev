@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const LOCK_TIMEOUT_MS = process.env.LOCK_TIMEOUT_MS || '2000ms';
 
 /**
- * List Endpoint: GET /slots
+ * List Available Slots Endpoint: GET /slots
  * Returns all AVAILABLE slots for a specific clinician ordered by time.
  * If no slots are found, returns a clean empty array [] with HTTP 200.
  */
@@ -23,7 +23,7 @@ app.get('/slots', async (req, res) => {
 
   try {
     const result = await db.query(
-      "SELECT id, time, status FROM slots WHERE clinician_id = $1 AND status = 'AVAILABLE' ORDER BY time",
+      "SELECT id, time, status, clinician_id FROM slots WHERE clinician_id = $1 AND status = 'AVAILABLE' ORDER BY time",
       [clinician_id]
     );
 
@@ -31,6 +31,31 @@ app.get('/slots', async (req, res) => {
   } catch (error) {
     console.error('[GET /slots Error]:', error);
     return res.status(500).json({ error: 'Internal server error while fetching slots.' });
+  }
+});
+
+/**
+ * List Booked Appointments Endpoint: GET /bookings (PR Feedback 2)
+ * Returns all BOOKED slots for a specific clinician ordered by time.
+ * If no booked slots are found, returns a clean empty array [] with HTTP 200.
+ */
+app.get('/bookings', async (req, res) => {
+  const { clinician_id } = req.query;
+
+  if (!clinician_id) {
+    return res.status(400).json({ error: 'clinician_id query parameter is required.' });
+  }
+
+  try {
+    const result = await db.query(
+      "SELECT id, time, status, clinician_id FROM slots WHERE clinician_id = $1 AND status = 'BOOKED' ORDER BY time",
+      [clinician_id]
+    );
+
+    return res.status(200).json(result.rows || []);
+  } catch (error) {
+    console.error('[GET /bookings Error]:', error);
+    return res.status(500).json({ error: 'Internal server error while fetching bookings.' });
   }
 });
 

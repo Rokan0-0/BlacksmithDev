@@ -36,6 +36,7 @@
         <a href="#booking-section" class="nav-link"><i class="fa-solid fa-calendar-check"></i> Patient Booking</a>
         <a href="#workbench" class="nav-link"><i class="fa-solid fa-code"></i> Workbench</a>
         <a href="#terminal-section" class="nav-link"><i class="fa-solid fa-terminal"></i> CLI</a>
+        <a href="#showcase" class="nav-link"><i class="fa-solid fa-layer-group"></i> Showcase</a>
         <a href="#capabilities" class="nav-link"><i class="fa-solid fa-microchip"></i> Stack</a>
       </nav>
 
@@ -102,7 +103,7 @@
     </div>
   </section>
 
-  <!-- Patient Booking Section (AC 01, AC 02, AC 03, AC 04, AC 05) -->
+  <!-- Patient Booking Section -->
   <section id="booking-section" class="section section-dark">
     <div class="container">
       <div class="section-header">
@@ -152,9 +153,19 @@
             <h4 class="empty-text">No open slots today.</h4>
             <p class="empty-subtext">All appointments for this clinician have been claimed. Please check back later or select another clinician.</p>
           </div>
+
+          <!-- Distinct Error State (PR Feedback 1: Exact text "Network failure. Cannot reach the forge.") -->
+          <div id="slots-error" class="slots-error-state hidden">
+            <div class="error-icon"><i class="fa-solid fa-triangle-exclamation text-ember"></i></div>
+            <h4 class="error-text">Network failure. Cannot reach the forge.</h4>
+            <p class="error-subtext">Unable to fetch available slots from the booking service. Please check your connection and retry.</p>
+            <button id="btn-retry-slots" class="btn btn-outline btn-sm margin-top-sm">
+              <i class="fa-solid fa-rotate"></i> Retry Connection
+            </button>
+          </div>
         </div>
 
-        <!-- Your Bookings Panel (Persisted via localStorage) -->
+        <!-- Your Bookings Panel (Synced with GET /bookings) -->
         <div class="your-bookings-panel card-glass">
           <div class="panel-header">
             <h3><i class="fa-solid fa-bookmark text-cyan"></i> Your Forged Appointments</h3>
@@ -162,7 +173,7 @@
           </div>
           
           <div id="user-bookings-list" class="user-bookings-list">
-            <!-- Dynamically populated from localStorage -->
+            <!-- Dynamically populated from GET /bookings & localStorage -->
           </div>
         </div>
       </div>
@@ -264,8 +275,72 @@
     </div>
   </section>
 
+  <!-- Showcase Section (PR Feedback 1: Inserted between CLI section and Stack section) -->
+  <section id="showcase" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag"><i class="fa-solid fa-boxes-stacked"></i> FORGED ARTIFACTS</div>
+        <h2 class="section-title">Engineered Modules & Architecture</h2>
+        <p class="section-description">Explore pre-built modules forged with ultra-low latency and scalable patterns.</p>
+      </div>
+
+      <div class="grid-3 showcase-grid">
+        <!-- Card 1 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">Core Tool</div>
+          <div class="card-icon"><i class="fa-solid fa-fire-burner"></i></div>
+          <h3 class="card-title">Ember-Engine AST</h3>
+          <p class="card-text">Ultra-fast abstract syntax tree transformer and code analyzer built for real-time developer tooling.</p>
+          <div class="card-tags">
+            <span class="tag">TypeScript</span>
+            <span class="tag">AST</span>
+            <span class="tag">Parser</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="ember">Inspect</button>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">AI Pipeline</div>
+          <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
+          <h3 class="card-title">Agentic Dispatcher</h3>
+          <p class="card-text">Multi-agent orchestrator with asynchronous message passing, reactive wakeups, and subagent state tracking.</p>
+          <div class="card-tags">
+            <span class="tag">AI Agents</span>
+            <span class="tag">Async</span>
+            <span class="tag">Queue</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="agent">Inspect</button>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card-glass showcase-card">
+          <div class="card-badge">Security</div>
+          <div class="card-icon"><i class="fa-solid fa-key"></i></div>
+          <h3 class="card-title">Anvil Escrow & Auth</h3>
+          <p class="card-text">Cryptographic state verification and peer-to-peer trust engine with automated audit logs.</p>
+          <div class="card-tags">
+            <span class="tag">Security</span>
+            <span class="tag">Escrow</span>
+            <span class="tag">Crypto</span>
+          </div>
+          <div class="card-footer">
+            <span class="status-online"><i class="fa-solid fa-circle"></i> Active</span>
+            <button class="btn-sm btn-outline inspect-btn" data-module="anvil">Inspect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Capabilities Stack Section -->
-  <section id="capabilities" class="section">
+  <section id="capabilities" class="section section-dark">
     <div class="container">
       <div class="section-header">
         <div class="section-tag"><i class="fa-solid fa-layer-group"></i> ENGINEERING TECH STACK</div>
@@ -288,7 +363,7 @@
           <h4><i class="fa-solid fa-server text-cyan"></i> Backend & API Services</h4>
           <ul>
             <li><i class="fa-solid fa-check text-cyan"></i> Express.js & `pg` Connection Pooling</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Atomic `POST /book` Endpoint</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Atomic `POST /book` & `GET /bookings`</li>
             <li><i class="fa-solid fa-check text-cyan"></i> Idempotent Seeding Scripts (`seed.js`)</li>
             <li><i class="fa-solid fa-check text-cyan"></i> In-Memory PostgreSQL Fallback (`pg-mem`)</li>
           </ul>
@@ -298,8 +373,8 @@
           <h4><i class="fa-solid fa-laptop-code text-ember"></i> Frontend & UX Excellence</h4>
           <ul>
             <li><i class="fa-solid fa-check text-ember"></i> Dark Glassmorphism Design System</li>
-            <li><i class="fa-solid fa-check text-ember"></i> Real-time Slot Patching & State Sync</li>
-            <li><i class="fa-solid fa-check text-ember"></i> LocalStorage Booking Persistence</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Button Guard Against Double Submit</li>
+            <li><i class="fa-solid fa-check text-ember"></i> Distinct Error & Empty View States</li>
             <li><i class="fa-solid fa-check text-ember"></i> Custom Forge Voice Notifications</li>
           </ul>
         </div>
@@ -325,6 +400,7 @@
           <a href="#booking-section">Patient Booking</a>
           <a href="#workbench">Workbench</a>
           <a href="#terminal-section">CLI Tool</a>
+          <a href="#showcase">Showcase</a>
         </div>
         <div class="footer-col">
           <h5>Repository</h5>

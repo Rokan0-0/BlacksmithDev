@@ -106,6 +106,7 @@ code, pre {
 
 .hidden { display: none !important; }
 .margin-bottom { margin-bottom: 1.5rem; }
+.margin-top-sm { margin-top: 0.8rem; }
 
 /* Containers & Grids */
 .container {
@@ -187,13 +188,19 @@ code, pre {
   outline: none;
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--color-ember) 0%, var(--color-flame) 100%);
   color: #000;
   box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   filter: brightness(1.15);
   box-shadow: 0 6px 20px rgba(255, 107, 0, 0.6);
   transform: translateY(-2px);
@@ -205,7 +212,7 @@ code, pre {
   border: 1px solid var(--border-glass);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
   border-color: var(--color-cyan);
   color: var(--color-cyan);
@@ -217,7 +224,7 @@ code, pre {
   border: 1px solid var(--border-color);
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
   background: rgba(255, 107, 0, 0.1);
   border-color: var(--color-flame);
   color: var(--color-flame);
@@ -474,7 +481,7 @@ code, pre {
 }
 
 /* ==========================================================================
-   Patient Booking Forge Styling (TLSTO-002 Component Rules)
+   Patient Booking Forge Styling
    ========================================================================== */
 .booking-controls {
   padding: 1.25rem 1.75rem;
@@ -589,7 +596,7 @@ code, pre {
   box-shadow: 0 0 6px var(--color-green);
 }
 
-/* Empty State (AC 05 Requirement) */
+/* Empty State (AC 05 Requirement: "No open slots today.") */
 .slots-empty-state {
   text-align: center;
   padding: 4rem 2rem;
@@ -612,6 +619,36 @@ code, pre {
 }
 
 .empty-subtext {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Distinct Error State (PR Feedback 1) */
+.slots-error-state {
+  text-align: center;
+  padding: 3.5rem 2rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  margin: auto 0;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--color-red);
+}
+
+.error-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-red);
+  margin-bottom: 0.4rem;
+}
+
+.error-subtext {
   color: var(--text-muted);
   font-size: 0.9rem;
   max-width: 420px;
@@ -654,6 +691,74 @@ code, pre {
   color: var(--text-dim);
   font-size: 0.9rem;
   padding: 3rem 1rem;
+}
+
+/* Showcase Section */
+.showcase-card {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-badge {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--color-cyan);
+  border: 1px solid var(--border-cyan);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.2rem;
+}
+
+.card-icon {
+  font-size: 2.2rem;
+  color: var(--color-ember);
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.card-text {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  flex: 1;
+  margin-bottom: 1.5rem;
+}
+
+.card-tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-glass);
+}
+
+.status-online {
+  font-size: 0.8rem;
+  color: var(--color-green);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 /* Workbench Section */
