@@ -50,7 +50,9 @@ async function runFrontendTests() {
       throw new Error('Expected open slot cards to be rendered on initial page load.');
     }
 
-    // Step 3: Physically click "Claim Slot" button
+    // --------------------------------------------------
+    // TEST 1: SUCCESSFUL CLAIM & FORGE VOICE TOAST
+    // --------------------------------------------------
     console.log('\n--------------------------------------------------');
     console.log('TEST 1: Claim Slot & Forge Voice Toast Assertion');
     console.log('--------------------------------------------------');
@@ -64,11 +66,9 @@ async function runFrontendTests() {
     console.log('[DOM Action] Physically clicking "Claim Slot" button...');
     await claimButton.click();
 
-    // Step 4: Wait for DOM to update & assert Forge Voice toast text
     console.log('[DOM Assertion] Waiting for Forge Voice toast notification in DOM...');
     const expectedForgeVoice = `Booked. ${slotTimeText} is yours — see you at the forge.`;
     
-    // Wait specifically for the confirmation toast containing "Booked."
     const toastElement = page.locator('.toast', { hasText: 'Booked.' });
     await toastElement.waitFor({ state: 'visible', timeout: 10000 });
 
@@ -80,13 +80,48 @@ async function runFrontendTests() {
     }
     console.log(`✅ TEST 1 PASSED! Toast correctly displays Forge Voice string:\n   "${expectedForgeVoice}"`);
 
-    // Step 5: Claim all remaining open slots until empty state is triggered
+    // --------------------------------------------------
+    // TEST 2: 409 CONFLICT REFUSAL PATH UI ASSERTION
+    // --------------------------------------------------
     console.log('\n--------------------------------------------------');
-    console.log('TEST 2: Empty State Assertion ("No open slots today.")');
+    console.log('TEST 2: 409 Refusal Path UI Assertion');
+    console.log('--------------------------------------------------');
+
+    const conflictSlotId = '22222222-2222-2222-2222-222222222222'; // 10:00 slot
+    console.log('[API Action] Claiming 10:00 slot out-of-band via backend API...');
+    await apiRequest.post(`${BASE_URL}/book`, {
+      data: {
+        slot_id: conflictSlotId,
+        idempotency_key: `idem-prebook-1000-${Date.now()}`
+      }
+    });
+
+    const btn1000 = page.locator(`.btn-claim-slot[data-id="${conflictSlotId}"]`);
+    if (await btn1000.count() > 0) {
+      console.log('[DOM Action] Physically clicking 10:00 slot button on UI (now taken)...');
+      await btn1000.scrollIntoViewIfNeeded();
+      await btn1000.click({ force: true });
+
+      console.log('[DOM Assertion] Waiting for 409 refusal toast alert in DOM...');
+      const refusalToast = page.locator('.toast', { hasText: 'booked by another patient' });
+      await refusalToast.waitFor({ state: 'visible', timeout: 10000 });
+
+      const refusalToastText = (await refusalToast.textContent()).trim();
+      console.log(`[409 Refusal Toast Detected]: "${refusalToastText}"`);
+      if (!refusalToastText.includes('booked by another patient')) {
+        throw new Error(`409 Refusal toast mismatch! Text: "${refusalToastText}"`);
+      }
+      console.log('✅ TEST 2 PASSED! 409 Conflict refusal message rendered correctly on UI.');
+    }
+
+    // --------------------------------------------------
+    // TEST 3: EMPTY STATE ASSERTION ("No open slots today.")
+    // --------------------------------------------------
+    console.log('\n--------------------------------------------------');
+    console.log('TEST 3: Empty State Assertion ("No open slots today.")');
     console.log('--------------------------------------------------');
     console.log('[DOM Action] Claiming all remaining open slots to exhaust availability...');
 
-    // Get remaining slot IDs currently present in DOM
     const remainingSlotIds = await page.evaluate(() => 
       Array.from(document.querySelectorAll('.btn-claim-slot')).map(b => b.getAttribute('data-id'))
     );
@@ -96,12 +131,10 @@ async function runFrontendTests() {
       if (await btnLocator.count() > 0) {
         await btnLocator.scrollIntoViewIfNeeded().catch(() => {});
         await btnLocator.click({ force: true }).catch(() => {});
-        // Wait for the button to detach from DOM after state refresh
         await btnLocator.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
       }
     }
 
-    // Step 6: Assert the empty state element and exact text
     console.log('[DOM Assertion] Waiting for empty state container (#slots-empty)...');
     await page.waitForSelector('#slots-empty:not(.hidden)', { timeout: 10000 });
 
@@ -112,7 +145,7 @@ async function runFrontendTests() {
     if (emptyStateText !== 'No open slots today.') {
       throw new Error(`Empty state text mismatch!\nExpected: "No open slots today."\nActual: "${emptyStateText}"`);
     }
-    console.log('✅ TEST 2 PASSED! Empty state correctly displays exact text:\n   "No open slots today."');
+    console.log('✅ TEST 3 PASSED! Empty state correctly displays exact text:\n   "No open slots today."');
 
     console.log('\n==================================================');
     console.log('🎉 ALL PLAYWRIGHT UI TESTS PASSED PERFECTLY!');
