@@ -139,7 +139,7 @@ app.post('/book', async (req, res) => {
 
     const slotTime = slotCheck.rows[0].time;
 
-    // 4. The Booking Write (Atomic Concurrency Token Update)
+    // 4. The Booking Write (Single Conditional Write for Concurrency & Isolation)
     // UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE';
     const updateResult = await client.query(
       "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time, status, clinician_id",
