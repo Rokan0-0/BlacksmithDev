@@ -6,30 +6,27 @@ This runbook documents how to execute the repeatable race condition demo to veri
 
 ## 1. Prerequisites & Environment Setup
 
-Ensure the server application is running locally before executing the demo script:
+1. Install project dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-# Start the server (in test or development mode)
-npx cross-env NODE_ENV=test node server.js
-```
+2. Start the server application in **test mode** (required to enable the `/reset-test-data` and `/slots/:id` endpoints):
+   ```bash
+   npx cross-env NODE_ENV=test node server.js
+   ```
 
 ---
 
-## 2. Resetting the Database
+## 2. Resetting the State
 
-To reset the database and seed fresh available appointment slots for clinician `dr-smith`, execute the seed script or trigger the test reset endpoint:
+To clear the database state and re-seed fresh available appointment slots for clinician `dr-smith` between demo runs, send a POST request to the reset endpoint:
 
-### Option A: Running the Seed Script
-```bash
-npm run seed
-```
-
-### Option B: Triggering the Reset Endpoint via HTTP
 ```bash
 curl -X POST http://localhost:3000/reset-test-data
 ```
 
-> **Note:** The `race-demo.js` script also automatically triggers a database reset before executing the concurrent requests, ensuring the demo is completely idempotent and re-runnable out of the box.
+> **Note:** The `scripts/race-demo.js` script also automatically sends a request to `/reset-test-data` before executing the concurrent requests, ensuring the demo is completely idempotent and re-runnable out of the box.
 
 ---
 
@@ -54,8 +51,8 @@ When running `node scripts/race-demo.js`, the script fires two simultaneous `POS
 ⚡ REPEATABLE RACE CONDITION DEMO (Ticket TLSTO-004)
 ====================================================
 
-[1/4] Resetting database to ensure target slot is AVAILABLE...
-✔ Database reset successfully (Target Slot 09:00 is OPEN).
+[1/4] Resetting server state to ensure target slot is AVAILABLE...
+✔ Server reset successfully (Target Slot 09:00 is OPEN).
 
 [2/4] Firing 2 concurrent POST /book requests at the EXACT same millisecond:
   - Target Slot ID: 11111111-1111-1111-1111-111111111111
@@ -73,17 +70,16 @@ When running `node scripts/race-demo.js`, the script fires two simultaneous `POS
     Response Body: We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.
 ----------------------------------------------------
 
-✔ Race Result Verified: Exactly one 200 OK (Success) and one 409 Conflict (Refusal).
+✔ Race Result Verified: Exactly one 200 OK (Success) and one 409 Conflict with patient-readable refusal message.
 
-[4/4] Connecting to Database to query `slots` table state...
+[4/4] Verifying final slot state via GET /slots/:id...
 ----------------------------------------------------
-📊 FINAL DATABASE SLOT STATE:
+📊 FINAL STORE SLOT STATE (from GET /slots/:id):
   Slot ID:         11111111-1111-1111-1111-111111111111
   Clinician ID:    dr-smith
   Time:            09:00
   Status:          BOOKED
   Idempotency Key: patient-A-6ecd53d9-fd77-4f9e-9f49-a6f21023bc6d
-  Total Booked:    1 (Expected: 1)
 ----------------------------------------------------
 
 🎉 DEMO SUCCESS: Race condition handled flawlessly! Slot was booked exactly ONCE.
@@ -93,5 +89,5 @@ When running `node scripts/race-demo.js`, the script fires two simultaneous `POS
 ### Verification Criteria
 
 1. **HTTP 200 OK (Success)**: Exactly one request succeeds with HTTP status `200` and returns the appointment booking object.
-2. **HTTP 409 Conflict (Refusal)**: Exactly one request fails with HTTP status `409` and returns the patient-readable refusal message (`We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.`).
-3. **Database State Assertion**: Querying the `slots` table verifies that the slot status is `BOOKED`, associated with a single idempotency key, and exactly **1** appointment exists in the database for that slot ID.
+2. **HTTP 409 Conflict (Refusal Body Asserted)**: Exactly one request fails with HTTP status `409` and returns the exact patient-readable refusal message (`We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.`).
+3. **Store State Assertion**: Querying `GET /slots/11111111-1111-1111-1111-111111111111` verifies that the active server store holds the slot in `BOOKED` status, associated with the winning patient's idempotency key.

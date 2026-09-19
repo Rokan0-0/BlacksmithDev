@@ -65,6 +65,10 @@ app.get('/bookings', async (req, res) => {
  * Returns details and status of a specific slot by ID from the database.
  */
 app.get('/slots/:id', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   const { id } = req.params;
 
   try {
