@@ -139,11 +139,11 @@ app.post('/book', async (req, res) => {
 
     const slotTime = slotCheck.rows[0].time;
 
-    // 4. The Booking Write (Single Conditional Write for Concurrency & Isolation)
-    // UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE';
+    // 4. Implement Single Conditional Write
+    // UPDATE slots SET status = 'BOOKED', idempotency_key = $1 WHERE id = $2 AND status = 'AVAILABLE' RETURNING *;
     const updateResult = await client.query(
-      "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time, status, clinician_id",
-      [slot_id]
+      "UPDATE slots SET status = 'BOOKED', idempotency_key = $1 WHERE id = $2 AND status = 'AVAILABLE' RETURNING *",
+      [idempotency_key, slot_id]
     );
 
     // 5. The Refusal: Evaluate rowCount

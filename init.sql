@@ -17,8 +17,9 @@ CREATE TABLE IF NOT EXISTS slots (
   status slot_status NOT NULL DEFAULT 'AVAILABLE'
 );
 
--- Safe Schema Migration: Upgrade existing slots table with clinician_id column if missing
+-- Safe Schema Migration: Upgrade existing slots table with clinician_id and idempotency_key columns if missing
 ALTER TABLE slots ADD COLUMN IF NOT EXISTS clinician_id VARCHAR(255);
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(255);
 
 -- Add Unique Constraint on (clinician_id, time) safely
 DO $$
