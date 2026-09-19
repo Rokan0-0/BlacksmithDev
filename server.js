@@ -8,6 +8,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const LOCK_TIMEOUT_MS = process.env.LOCK_TIMEOUT_MS || '2000ms';
+const env = process.env.NODE_ENV || 'development';
 
 /**
  * List Available Slots Endpoint: GET /slots
@@ -139,11 +140,11 @@ app.post('/book', async (req, res) => {
 
     const slotTime = slotCheck.rows[0].time;
 
-    // 4. The Booking Write (Atomic Concurrency Token Update)
-    // UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE';
+    // 4. Implement Single Conditional Write
+    // UPDATE slots SET status = 'BOOKED', idempotency_key = $1 WHERE id = $2 AND status = 'AVAILABLE' RETURNING *;
     const updateResult = await client.query(
-      "UPDATE slots SET status = 'BOOKED' WHERE id = $1 AND status = 'AVAILABLE' RETURNING id, time, status, clinician_id",
-      [slot_id]
+      "UPDATE slots SET status = 'BOOKED', idempotency_key = $1 WHERE id = $2 AND status = 'AVAILABLE' RETURNING *",
+      [idempotency_key, slot_id]
     );
 
     // 5. The Refusal: Evaluate rowCount
@@ -152,11 +153,13 @@ app.post('/book', async (req, res) => {
 
       const refusalMessage = `We are sorry, but the ${slotTime} appointment was just booked by another patient. Please select another open time.`;
       
-      // Store refusal result in idempotency_keys for hold-and-return consistency
+      // Critical Idempotency Fix: Store refusal result in idempotency_keys AFTER ROLLBACK using pool query
       await db.query(
-        'UPDATE idempotency_keys SET booking_result = $2 WHERE key = $1',
+        `INSERT INTO idempotency_keys (key, booking_result)
+         VALUES ($1, $2)
+         ON CONFLICT (key) DO UPDATE SET booking_result = EXCLUDED.booking_result`,
         [idempotency_key, JSON.stringify({ statusCode: 409, payload: refusalMessage })]
-      );
+      ).catch(() => {});
 
       return res.status(409).send(refusalMessage);
     }
@@ -185,6 +188,24 @@ app.post('/book', async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
+
+    // Explicitly catch 23505 (unique_violation) and 55P03 (lock_timeout)
+    if (error.code === '23505' || error.code === '55P03') {
+      const refusalMessage = 'We are sorry, but that appointment was just booked by another patient. Please select another open time.';
+
+      // Critical Idempotency Fix: Store refusal result AFTER ROLLBACK
+      if (idempotency_key) {
+        await db.query(
+          `INSERT INTO idempotency_keys (key, booking_result)
+           VALUES ($1, $2)
+           ON CONFLICT (key) DO UPDATE SET booking_result = EXCLUDED.booking_result`,
+          [idempotency_key, JSON.stringify({ statusCode: 409, payload: refusalMessage })]
+        ).catch(() => {});
+      }
+
+      return res.status(409).send(refusalMessage);
+    }
+
     console.error('[POST /book Error]:', error);
     return res.status(500).json({ error: 'Internal server error during booking transaction.' });
   } finally {
@@ -194,7 +215,8 @@ app.post('/book', async (req, res) => {
 
 // Helper endpoint to reset/seed test slots
 app.post('/reset-test-data', async (req, res) => {
-  if (process.env.NODE_ENV !== 'test') {
+  const env = process.env.NODE_ENV || 'development';
+  if (env === 'production') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
