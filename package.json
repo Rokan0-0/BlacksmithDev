@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node seed.js",
-    "test-concurrency": "node scripts/test-concurrency.js"
+    "test-concurrency": "cross-env NODE_ENV=test node scripts/test-concurrency.js",
+    "test-frontend": "cross-env NODE_ENV=test node test-frontend.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -14,5 +15,9 @@
     "pg": "^8.11.5",
     "pg-mem": "^3.0.14",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "playwright": "^1.63.0"
   }
 }
