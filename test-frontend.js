@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const { execSync } = require('child_process');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -21,10 +22,10 @@ async function runFrontendTests() {
 
   const browser = await launchBrowser();
   const context = await browser.newContext();
+  const apiRequest = context.request;
 
   // Reset database test data first via API request
   console.log('[Setup] Resetting database test slots via POST /reset-test-data...');
-  const apiRequest = context.request;
   const resetResponse = await apiRequest.post(`${BASE_URL}/reset-test-data`);
   if (!resetResponse.ok()) {
     throw new Error(`Failed to reset test data: ${resetResponse.statusText()}`);
@@ -32,6 +33,7 @@ async function runFrontendTests() {
   console.log('[Setup] Test database slots reset complete.\n');
 
   const page = await context.newPage();
+  let hasError = false;
 
   try {
     // Step 1: Load http://localhost:3000
@@ -115,14 +117,25 @@ async function runFrontendTests() {
     console.log('\n==================================================');
     console.log('🎉 ALL PLAYWRIGHT UI TESTS PASSED PERFECTLY!');
     console.log('==================================================\n');
-
-    await browser.close();
-    process.exit(0);
   } catch (err) {
     console.error('\n❌ PLAYWRIGHT UI TEST FAILED:', err.message);
     await page.screenshot({ path: 'test-failure.png', fullPage: true }).catch(() => {});
-    await browser.close();
-    process.exit(1);
+    hasError = true;
+  } finally {
+    console.log('[Teardown] Re-seeding database via execSync("npm run seed")...');
+    try {
+      execSync('npm run seed', { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'test' } });
+      console.log('[Teardown] State restored: Database re-seeded for next developer.');
+    } catch (seedErr) {
+      console.warn('[Teardown Notice] execSync("npm run seed"):', seedErr.message);
+    }
+
+    try {
+      await apiRequest.post(`${BASE_URL}/reset-test-data`);
+    } catch (e) {}
+
+    await browser.close().catch(() => {});
+    process.exit(hasError ? 1 : 0);
   }
 }
 

@@ -551,10 +551,10 @@ function initTerminal() {
           .then((slots) => {
             appendLine(`✅ Found ${slots.length} available slots for dr-smith:`, 'success');
             slots.forEach((s) => {
-              appendLine(`  • [${s.time}] ID: ${s.id} (Status: ${s.status})`, 'info');
+              appendLine(`  • [${escapeHtml(s.time)}] ID: ${escapeHtml(s.id)} (Status: ${escapeHtml(s.status)})`, 'info');
             });
           })
-          .catch((err) => appendLine(`Error: ${err.message}`, 'error'));
+          .catch((err) => appendLine(`Error: ${escapeHtml(err.message)}`, 'error'));
         break;
 
       case 'bookings':
@@ -564,10 +564,10 @@ function initTerminal() {
           .then((bookings) => {
             appendLine(`✅ Found ${bookings.length} booked slots for dr-smith:`, 'success');
             bookings.forEach((b) => {
-              appendLine(`  • [${b.time}] ID: ${b.id} (Status: ${b.status})`, 'info');
+              appendLine(`  • [${escapeHtml(b.time)}] ID: ${escapeHtml(b.id)} (Status: ${escapeHtml(b.status)})`, 'info');
             });
           })
-          .catch((err) => appendLine(`Error: ${err.message}`, 'error'));
+          .catch((err) => appendLine(`Error: ${escapeHtml(err.message)}`, 'error'));
         break;
 
       case 'status':

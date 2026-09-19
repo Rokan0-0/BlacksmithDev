@@ -194,6 +194,10 @@ app.post('/book', async (req, res) => {
 
 // Helper endpoint to reset/seed test slots
 app.post('/reset-test-data', async (req, res) => {
+  if (process.env.NODE_ENV !== 'test') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   try {
     await db.query('DELETE FROM idempotency_keys');
     await db.query('DELETE FROM slots');

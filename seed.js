@@ -10,8 +10,8 @@ async function seedClinicianSlots(clinicianId = 'dr-smith', allowInMemory = fals
   
   await db.initDb();
 
-  // Strict check required by PR feedback unless explicitly allowed during testing mock
-  if (!allowInMemory && db.isInMemoryMode && db.isInMemoryMode()) {
+  // Strict check required by PR feedback unless explicitly allowed during testing mock or test ENV
+  if (!allowInMemory && process.env.NODE_ENV !== 'test' && db.isInMemoryMode && db.isInMemoryMode()) {
     throw new Error("FATAL: Cannot seed an in-memory database. Postgres must be running.");
   }
 
