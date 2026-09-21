@@ -3,7 +3,10 @@ const { v4: uuidv4 } = require('uuid');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const TARGET_SLOT_ID = '11111111-1111-1111-1111-111111111111'; // 09:00 slot for dr-smith
-const EXPECTED_REFUSAL_MSG = 'We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.';
+const VALID_REFUSAL_MESSAGES = [
+  'We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.',
+  'We are sorry, but that appointment was just booked by another patient. Please select another open time.',
+];
 
 function makeRequest(path, method = 'GET', payload = null) {
   return new Promise((resolve, reject) => {
@@ -90,20 +93,22 @@ async function runRaceDemo() {
     process.exit(1);
   }
 
-  // PR Feedback 1: Assert parsed refusal body contains exact patient-readable refusal message
+  // PR Feedback: Assert refusal body matches either conditional write or lock_timeout refusal message
   const refusalRes = resA.status === 409 ? resA : resB;
   const refusalText = typeof refusalRes.body === 'object' ? refusalRes.body.error || refusalRes.body.message : refusalRes.body;
 
-  if (refusalText !== EXPECTED_REFUSAL_MSG) {
+  const isValidRefusal = VALID_REFUSAL_MESSAGES.includes(refusalText);
+
+  if (!isValidRefusal) {
     console.error('❌ Refusal body assertion failed!');
-    console.error(`   Expected: "${EXPECTED_REFUSAL_MSG}"`);
-    console.error(`   Got:      "${refusalText}"`);
+    console.error(`   Expected one of:\n     1) "${VALID_REFUSAL_MESSAGES[0]}"\n     2) "${VALID_REFUSAL_MESSAGES[1]}"`);
+    console.error(`   Got:              "${refusalText}"`);
     process.exit(1);
   }
 
   console.log('✔ Race Result Verified: Exactly one 200 OK (Success) and one 409 Conflict with patient-readable refusal message.\n');
 
-  // PR Feedback 1 (Store Verification): Verify final slot state via GET /slots/:id HTTP endpoint (no direct DB connection)
+  // Store Verification: Verify final slot state via GET /slots/:id HTTP endpoint
   console.log('[4/4] Verifying final slot state via GET /slots/:id...');
   const slotRes = await makeRequest(`/slots/${TARGET_SLOT_ID}`, 'GET');
 

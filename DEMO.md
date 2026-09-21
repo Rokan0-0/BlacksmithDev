@@ -6,15 +6,29 @@ This runbook documents how to execute the repeatable race condition demo to veri
 
 ## 1. Prerequisites & Environment Setup
 
-1. Install project dependencies:
+1. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-2. Start the server application in **test mode** (required to enable the `/reset-test-data` and `/slots/:id` endpoints):
+2. **Start Real PostgreSQL Database**:
+   A real PostgreSQL instance must be running for a true concurrent database race condition to occur. Start the PostgreSQL container via Docker Compose:
+   ```bash
+   docker-compose up -d db
+   ```
+
+3. **Start the Server in Test Mode**:
+   Start the server application in **test mode** (required to enable the `/reset-test-data` and `/slots/:id` endpoints):
    ```bash
    npx cross-env NODE_ENV=test node server.js
    ```
+
+> [!WARNING]
+> **Verify Native PostgreSQL Connection**:
+> Check the server startup logs to verify that it connected to native PostgreSQL:
+> `[DB Init] Connected to native PostgreSQL database.`
+> 
+> If you see the fallback log (`[DB Init] PostgreSQL service not detected on port 5432. Active mode: In-Memory PostgreSQL engine (pg-mem).`), Node's single-threaded event loop processes requests synchronously in-memory. **The pg-mem fallback does NOT prove a true concurrent database race condition.** Always start PostgreSQL via `docker-compose up -d db` before evaluating true race condition behavior.
 
 ---
 
@@ -89,5 +103,5 @@ When running `node scripts/race-demo.js`, the script fires two simultaneous `POS
 ### Verification Criteria
 
 1. **HTTP 200 OK (Success)**: Exactly one request succeeds with HTTP status `200` and returns the appointment booking object.
-2. **HTTP 409 Conflict (Refusal Body Asserted)**: Exactly one request fails with HTTP status `409` and returns the exact patient-readable refusal message (`We are sorry, but the 09:00 appointment was just booked by another patient. Please select another open time.`).
+2. **HTTP 409 Conflict (Refusal Body Asserted)**: Exactly one request fails with HTTP status `409` and returns a valid patient-readable refusal message (either the conditional write refusal or the lock timeout refusal).
 3. **Store State Assertion**: Querying `GET /slots/11111111-1111-1111-1111-111111111111` verifies that the active server store holds the slot in `BOOKED` status, associated with the winning patient's idempotency key.
