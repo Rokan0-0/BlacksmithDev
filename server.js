@@ -61,6 +61,20 @@ app.get('/bookings', async (req, res) => {
 });
 
 /**
+ * Store Status Endpoint: GET /_debug/store-status
+ * Surfaces database mode (native Postgres vs pg-mem fallback).
+ * Guarded against production environments.
+ */
+app.get('/_debug/store-status', (req, res) => {
+  const env = process.env.NODE_ENV || 'development';
+  if (env === 'production') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  return res.status(200).json({ inMemory: db.isInMemoryMode() });
+});
+
+/**
  * Get Single Slot Endpoint: GET /slots/:id
  * Returns details and status of a specific slot by ID from the database.
  */
