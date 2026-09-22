@@ -18,7 +18,7 @@ This runbook documents how to execute the repeatable race condition demo to veri
    ```
 
 3. **Start the Server in Test Mode**:
-   Start the server application in **test mode** (required to enable the `/reset-test-data` and `/slots/:id` endpoints):
+   Start the server application in **test mode** (required to enable the `/reset-test-data`, `/_debug/store-status`, and `/slots/:id` endpoints):
    ```bash
    npx cross-env NODE_ENV=test node server.js
    ```
@@ -64,6 +64,9 @@ When running `node scripts/race-demo.js`, the script fires two simultaneous `POS
 ====================================================
 ⚡ REPEATABLE RACE CONDITION DEMO (Ticket TLSTO-004)
 ====================================================
+
+[0/4] Checking database store mode via GET /_debug/store-status...
+✔ Confirmed server is connected to native PostgreSQL database.
 
 [1/4] Resetting server state to ensure target slot is AVAILABLE...
 ✔ Server reset successfully (Target Slot 09:00 is OPEN).

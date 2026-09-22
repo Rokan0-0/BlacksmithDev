@@ -48,11 +48,16 @@ async function runRaceDemo() {
   console.log('⚡ REPEATABLE RACE CONDITION DEMO (Ticket TLSTO-004)');
   console.log('====================================================\n');
 
-  // Step 0: Check database store mode to enforce real PostgreSQL requirement
+  // Step 0: Check database store mode to enforce real PostgreSQL requirement (Fail Closed)
   console.log('[0/4] Checking database store mode via GET /_debug/store-status...');
   const storeStatusRes = await makeRequest('/_debug/store-status', 'GET');
   
-  if (storeStatusRes.status !== 200 || (storeStatusRes.body && storeStatusRes.body.inMemory === true)) {
+  const isNativePostgres = storeStatusRes.status === 200 &&
+    typeof storeStatusRes.body === 'object' &&
+    storeStatusRes.body !== null &&
+    storeStatusRes.body.inMemory === false;
+
+  if (!isNativePostgres) {
     console.error('FATAL: Server is running in pg-mem fallback mode. True concurrency cannot be proven synchronously. Please start PostgreSQL.');
     process.exit(1);
   }
