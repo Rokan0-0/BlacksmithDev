@@ -14,8 +14,10 @@ To verify the concurrency guarantees and run the race condition demo, please see
 # 1. Start PostgreSQL
 docker-compose up -d db
 
-# 2. Start server in test mode
-npx cross-env NODE_ENV=test node server.js
+# 2. Install dependencies & start server in test mode
+npm install
+npm run start
+# or: npx cross-env NODE_ENV=test node server.js
 
 # 3. Run the race condition demo
 node scripts/race-demo.js

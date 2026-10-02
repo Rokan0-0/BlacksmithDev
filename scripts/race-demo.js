@@ -1,4 +1,3 @@
-const http = require('http');
 const { v4: uuidv4 } = require('uuid');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -8,39 +7,32 @@ const VALID_REFUSAL_MESSAGES = [
   'We are sorry, but that appointment was just booked by another patient. Please select another open time.',
 ];
 
-function makeRequest(path, method = 'GET', payload = null) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE_URL);
-    const data = payload ? JSON.stringify(payload) : null;
+async function makeRequest(path, method = 'GET', payload = null) {
+  const url = new URL(path, BASE_URL);
+  const headers = {};
+  let body = null;
 
-    const headers = {};
-    if (data) {
-      headers['Content-Type'] = 'application/json';
-      headers['Content-Length'] = Buffer.byteLength(data);
-    }
+  if (payload) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(payload);
+  }
 
-    const req = http.request(
-      url,
-      { method, headers },
-      (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => {
-          let parsed;
-          try {
-            parsed = JSON.parse(body);
-          } catch {
-            parsed = body;
-          }
-          resolve({ status: res.statusCode, body: parsed });
-        });
-      }
-    );
-
-    req.on('error', (err) => reject(err));
-    if (data) req.write(data);
-    req.end();
+  const res = await fetch(url.toString(), {
+    method,
+    headers,
+    body,
+    signal: AbortSignal.timeout(5000),
   });
+
+  const rawText = await res.text();
+  let parsed;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    parsed = rawText;
+  }
+
+  return { status: res.status, body: parsed };
 }
 
 async function runRaceDemo() {
@@ -58,7 +50,7 @@ async function runRaceDemo() {
     storeStatusRes.body.inMemory === false;
 
   if (!isNativePostgres) {
-    console.error('FATAL: Server is running in pg-mem fallback mode. True concurrency cannot be proven synchronously. Please start PostgreSQL.');
+    console.error('FATAL: Store status check failed, returned an ambiguous response, or confirmed pg-mem fallback mode. True concurrency cannot be proven synchronously. Please start PostgreSQL.');
     process.exit(1);
   }
   console.log('✔ Confirmed server is connected to native PostgreSQL database.\n');
@@ -81,7 +73,7 @@ async function runRaceDemo() {
   console.log(`  - Patient A Key:  ${keyA}`);
   console.log(`  - Patient B Key:  ${keyB}\n`);
 
-  // Step 3: Fire concurrently via Promise.all
+  // Step 3: Fire concurrently via Promise.all with AbortSignal.timeout(5000)
   const [resA, resB] = await Promise.all([
     makeRequest('/book', 'POST', { slot_id: TARGET_SLOT_ID, idempotency_key: keyA }),
     makeRequest('/book', 'POST', { slot_id: TARGET_SLOT_ID, idempotency_key: keyB }),
