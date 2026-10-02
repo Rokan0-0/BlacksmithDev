@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "High-Concurrency Appointment Booking System with Transaction Isolation & Idempotency",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "seed": "node seed.js",

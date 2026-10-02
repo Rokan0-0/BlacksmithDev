@@ -6,6 +6,8 @@ This runbook documents how to execute the repeatable race condition demo to veri
 
 ## 1. Prerequisites & Environment Setup
 
+**Prerequisite:** You must have Node.js version 18 or higher installed (required for global `fetch` and `AbortSignal.timeout`).
+
 1. **Install Dependencies**:
    ```bash
    npm install
