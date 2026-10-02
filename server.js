@@ -61,6 +61,48 @@ app.get('/bookings', async (req, res) => {
 });
 
 /**
+ * Store Status Endpoint: GET /_debug/store-status
+ * Surfaces database mode (native Postgres vs pg-mem fallback).
+ * Guarded against production environments.
+ */
+app.get('/_debug/store-status', (req, res) => {
+  const env = process.env.NODE_ENV || 'development';
+  if (env === 'production') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  return res.status(200).json({ inMemory: db.isInMemoryMode() });
+});
+
+/**
+ * Get Single Slot Endpoint: GET /slots/:id
+ * Returns details and status of a specific slot by ID from the database.
+ */
+app.get('/slots/:id', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const result = await db.query(
+      'SELECT id, time, status, clinician_id, idempotency_key FROM slots WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Slot not found.' });
+    }
+
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('[GET /slots/:id Error]:', error);
+    return res.status(500).json({ error: 'Internal server error while fetching slot details.' });
+  }
+});
+
+/**
  * Core Endpoint: POST /book
  * Implements atomic booking, lock_timeout protection, 
  * idempotency hold-and-return logic, and race condition prevention.
